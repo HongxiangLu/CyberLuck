@@ -140,6 +140,15 @@ var WorshipScene = (function () {
     }
 
     var _IS_MOBILE_RE = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i;
+    function _ensureDeviceMobileFallback() {
+        if (!window.Device) return;
+        if (typeof Device.isMobile !== 'function') {
+            Device.isMobile = function () {
+                return _IS_MOBILE_RE.test(navigator.userAgent);
+            };
+        }
+    }
+
     function _isMobileClient() {
         return _IS_MOBILE_RE.test(navigator.userAgent);
     }
@@ -229,6 +238,7 @@ var WorshipScene = (function () {
         _posterState = 'idle';
         _posterGeneratedUrl = '';
         UI.clearButtons();
+        _ensureDeviceMobileFallback();
         _hidePosterOverlay();
         _ensurePosterDom();
         _setupSelectButtons();

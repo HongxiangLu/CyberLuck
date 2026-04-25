@@ -40,3 +40,10 @@
 python -m http.server 8000
 ```
 然后在手机或浏览器中访问 `http://<您的IP>:8000` 即可体验。
+
+## 更新说明（2026-04-26）
+- 木鱼资源目录已规范化：`fish.png`、`fish0.png`、`fish2.png`、`striker.png` 统一迁移到 `images/woodenfish/`。
+- 木鱼场景引用路径已同步更新为 `./images/woodenfish/*.png`，避免根目录资源堆积。
+- 木鱼玩法新增可见的“切换木鱼”按钮，支持 4 种形态（第 4 个为经典原始版）与差异化敲击特效。
+- 拜财神成功流程升级为“燃烧显影 → Canvas 海报生成（html2canvas）→ 全屏海报展示”。
+- 为避免浏览器缓存导致脚本旧版本执行，`index.html` 中 `device.js`、`worship.js`、`woodenfish.js` 已添加版本参数。

@@ -83,10 +83,10 @@ var WoodenFishScene = (function () {
     function _preloadAssets() {
         if (_assetsLoaded) return;
         _assetsLoaded = true;
-        _loadImage('fishFlame', './fish.png');
-        _loadImage('fishStorm', './fish0.png');
-        _loadImage('fishLotus', './fish2.png');
-        _loadImage('striker', './striker.png');
+        _loadImage('fishFlame', './images/woodenfish/fish.png');
+        _loadImage('fishStorm', './images/woodenfish/fish0.png');
+        _loadImage('fishLotus', './images/woodenfish/fish2.png');
+        _loadImage('striker', './images/woodenfish/striker.png');
     }
 
     function _loadImage(key, src) {
