@@ -21,11 +21,62 @@ var WorshipScene = (function () {
     var _touchEndHandler = null;
     var _motionRequested = false;
     var _incenseGlow = 0;
+    var _godImages = {};  // 预加载的财神 SVG 图片
+    var _imagesLoaded = false;
+
+    /** 预加载所有财神 SVG 图片 */
+    function _preloadGodImages(callback) {
+        var mapping = {
+            '关二爷': './svgs/关二爷.svg',
+            '赵公明': './svgs/赵公明.svg',
+            '文财神': './svgs/陶朱公.svg',
+            '比干':   './svgs/比干.svg'
+        };
+        var keys = Object.keys(mapping);
+        var loaded = 0;
+        var total = keys.length;
+        for (var i = 0; i < keys.length; i++) {
+            (function (name, src) {
+                var img = new Image();
+                img.onload = function () {
+                    _godImages[name] = img;
+                    loaded++;
+                    if (loaded >= total) {
+                        _imagesLoaded = true;
+                        if (callback) callback();
+                    }
+                };
+                img.onerror = function () {
+                    // 加载失败，使用 null 标记，渲染时回退到 Canvas 矢量
+                    _godImages[name] = null;
+                    loaded++;
+                    if (loaded >= total) {
+                        _imagesLoaded = true;
+                        if (callback) callback();
+                    }
+                };
+                img.src = src;
+            })(keys[i], mapping[keys[i]]);
+        }
+    }
+
+    /** 绘制财神形象（优先 SVG 图片，回退 Canvas 矢量） */
+    function _drawGodImage(ctx, name, cx, cy, scale, fallbackDraw) {
+        var img = _godImages[name];
+        if (img) {
+            var drawH = 200 * scale;
+            var ratio = img.naturalWidth / img.naturalHeight;
+            var drawW = drawH * ratio;
+            ctx.drawImage(img, cx - drawW / 2, cy - drawH / 2, drawW, drawH);
+        } else if (fallbackDraw) {
+            fallbackDraw(ctx, cx, cy, scale);
+        }
+    }
 
     var gods = [
         {
             name: '关二爷',
-            draw: function (ctx, cx, cy, s) { Draw.drawGuanYu(ctx, cx, cy, s); },
+            draw: function (ctx, cx, cy, s) { _drawGodImage(ctx, '关二爷', cx, cy, s, Draw.drawGuanYu); },
             color: '#228B22',
             quotes: [
                 '忠义相随，财运亨通',
@@ -36,7 +87,7 @@ var WorshipScene = (function () {
         },
         {
             name: '赵公明',
-            draw: function (ctx, cx, cy, s) { Draw.drawZhaoGongMing(ctx, cx, cy, s); },
+            draw: function (ctx, cx, cy, s) { _drawGodImage(ctx, '赵公明', cx, cy, s, Draw.drawZhaoGongMing); },
             color: '#8B0000',
             quotes: [
                 '五路财神到，金银满堂招',
@@ -47,7 +98,7 @@ var WorshipScene = (function () {
         },
         {
             name: '文财神',
-            draw: function (ctx, cx, cy, s) { Draw.drawWenCaiShen(ctx, cx, cy, s); },
+            draw: function (ctx, cx, cy, s) { _drawGodImage(ctx, '文财神', cx, cy, s, Draw.drawWenCaiShen); },
             color: '#1a1a6e',
             quotes: [
                 '文曲星照，才财双收',
@@ -58,7 +109,7 @@ var WorshipScene = (function () {
         },
         {
             name: '比干',
-            draw: function (ctx, cx, cy, s) { Draw.drawBiGan(ctx, cx, cy, s); },
+            draw: function (ctx, cx, cy, s) { _drawGodImage(ctx, '比干', cx, cy, s, Draw.drawBiGan); },
             color: '#4B0082',
             quotes: [
                 '心正则财正，无私则无患',
@@ -80,6 +131,9 @@ var WorshipScene = (function () {
         _setupSelectButtons();
         Engine.startLoop(render);
         _bindTouchEvents();
+        if (!_imagesLoaded) {
+            _preloadGodImages();
+        }
     }
 
     function _setupSelectButtons() {
