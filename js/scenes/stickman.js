@@ -1,5 +1,5 @@
 /**
- * stickman.js — 拜年小人场景
+ * stickman.js — 拜年小人场景（刚体旋转 FK 模型）
  */
 var StickmanScene = (function () {
     'use strict';
@@ -7,377 +7,328 @@ var StickmanScene = (function () {
     var _phase = 'prepare'; // prepare -> playing -> result
     var _timer = 8;
     var _lastTime = 0;
+    var _time = 0;
+    var W = 0, H = 0, FLOOR_Y = 0;
 
-    var _nodes = [];
-    var _constraints = [];
-    var _selectedNode = null;
-    var _touching = false;
-    var _touchX = 0, _touchY = 0;
+    var _segments = [];
+    var _segMap = {};
+    var _selectedSeg = null;
+    var _dragStartAngle = 0;
+    var _dragPivotX = 0, _dragPivotY = 0;
 
-    var FLOOR_Y = 0;
-    var W = 0, H = 0;
-    var _touchStartHandler = null, _touchMoveHandler = null, _touchEndHandler = null;
+    var _touchStartH = null, _touchMoveH = null, _touchEndH = null;
 
-    /** 节点定义 */
-    function Node(x, y, radius, pin) {
-        this.x = x;
-        this.y = y;
-        this.oldX = x;
-        this.oldY = y;
-        this.radius = radius || 5;
-        this.pinned = !!pin;
+    /* ====== 骨骼初始化 ====== */
+    function _initSegments() {
+        var leftFootX = W * 0.46;
+        var rightFootX = W * 0.54;
+        var shin = 55, thigh = 50, torso = 65, headL = 22;
+        var uArm = 40, fArm = 35;
+
+        // angle: 绝对世界角 (0=正上方, PI/2=右, PI=下, -PI/2=左)
+        // attachRatio: 在 parent 线段上的比例位置 (0=pivot端, 1=end端)
+        // offX: 垂直于 parent 方向的侧偏移 (parent 本地坐标)
+        _segments = [
+            { id:'lShin',  pid:null,     angle:0,    len:shin,  thick:9,  color:'#3a5f5f', lbl:'左小腿',
+              fpx:leftFootX, fpy:0/*FLOOR_Y*/, ar:1, ox:0 },
+            { id:'lThigh', pid:'lShin',  angle:0,    len:thigh, thick:11, color:'#3a5f5f', lbl:'左大腿',
+              ar:1, ox:0 },
+            { id:'torso',  pid:'lThigh', angle:0,    len:torso, thick:14, color:'#c0392b', lbl:'躯干',
+              ar:1, ox:0 },
+            { id:'head',   pid:'torso',  angle:0,    len:headL, thick:0,  color:'#FFDEAD', lbl:'头部',
+              ar:1, ox:0, isHead:true },
+            { id:'lUArm',  pid:'torso',  angle:Math.PI*0.85,  len:uArm, thick:8, color:'#c0392b', lbl:'左大臂',
+              ar:0.92, ox:-8 },
+            { id:'lFArm',  pid:'lUArm',  angle:Math.PI*0.9,   len:fArm, thick:7, color:'#FFDEAD', lbl:'左小臂',
+              ar:1, ox:0 },
+            { id:'rUArm',  pid:'torso',  angle:Math.PI*1.15,   len:uArm, thick:8, color:'#c0392b', lbl:'右大臂',
+              ar:0.92, ox:8 },
+            { id:'rFArm',  pid:'rUArm',  angle:Math.PI*1.1,    len:fArm, thick:7, color:'#FFDEAD', lbl:'右小臂',
+              ar:1, ox:0 },
+            { id:'rThigh', pid:'torso',  angle:Math.PI,        len:thigh,thick:11,color:'#2F4F4F', lbl:'右大腿',
+              ar:0, ox:8 },
+            { id:'rShin',  pid:'rThigh', angle:Math.PI,        len:shin, thick:9, color:'#2F4F4F', lbl:'右小腿',
+              ar:1, ox:0 }
+        ];
+
+        _segMap = {};
+        for (var i = 0; i < _segments.length; i++) {
+            var s = _segments[i];
+            s.px = 0; s.py = 0; s.ex = 0; s.ey = 0;
+            s.children = [];
+            _segMap[s.id] = s;
+        }
+        for (var j = 0; j < _segments.length; j++) {
+            var seg = _segments[j];
+            if (seg.pid && _segMap[seg.pid]) {
+                _segMap[seg.pid].children.push(seg);
+            }
+        }
+        // 设置 root 的固定 pivot Y
+        _segments[0].fpy = FLOOR_Y;
+        _computeFK();
     }
 
-    /** 约束定义 */
-    function Constraint(p1, p2, len, thickness, color) {
-        this.p1 = p1;
-        this.p2 = p2;
-        this.len = len || _dist(p1, p2);
-        this.thickness = thickness || 8;
-        this.color = color || '#FA8072';
+    /* ====== 前向运动学 ====== */
+    function _computeFK() {
+        for (var i = 0; i < _segments.length; i++) {
+            var s = _segments[i];
+            if (!s.pid) {
+                // 根节点：固定 pivot
+                s.px = s.fpx;
+                s.py = s.fpy;
+            } else {
+                var p = _segMap[s.pid];
+                // attach 点 = p.pivot + (p.end - p.pivot) * attachRatio
+                var ax = p.px + (p.ex - p.px) * s.ar;
+                var ay = p.py + (p.ey - p.py) * s.ar;
+                // 侧偏移：垂直于 parent 方向
+                if (s.ox !== 0) {
+                    var pdx = p.ex - p.px, pdy = p.ey - p.py;
+                    var pLen = Math.sqrt(pdx * pdx + pdy * pdy) || 1;
+                    ax += (-pdy / pLen) * s.ox;
+                    ay += (pdx / pLen) * s.ox;
+                }
+                s.px = ax;
+                s.py = ay;
+            }
+            s.ex = s.px + s.len * Math.sin(s.angle);
+            s.ey = s.py - s.len * Math.cos(s.angle);
+        }
     }
 
-    function _dist(p1, p2) {
-        var dx = p1.x - p2.x; var dy = p1.y - p2.y;
-        return Math.sqrt(dx * dx + dy * dy);
+    /* ====== 旋转一个部位 + 所有远地端子代 ====== */
+    function _rotateSeg(seg, delta) {
+        seg.angle += delta;
+        _rotateChildren(seg, delta);
+    }
+    function _rotateChildren(seg, delta) {
+        for (var i = 0; i < seg.children.length; i++) {
+            seg.children[i].angle += delta;
+            _rotateChildren(seg.children[i], delta);
+        }
     }
 
-    function _initStickman() {
-        _nodes = [];
-        _constraints = [];
-        
-        var cx = W / 2;
-        var cy = H * 0.45;
-        var scale = 1.0;
-
-        // 节点命名: (仅用作索引标记方便查阅)
-        var head = new Node(cx, cy - 100 * scale, 22);
-        var neck = new Node(cx, cy - 70 * scale, 10);
-        var pelvis = new Node(cx, cy, 15);
-        
-        var lShoulder = new Node(cx - 20 * scale, cy - 65 * scale, 8);
-        var rShoulder = new Node(cx + 20 * scale, cy - 65 * scale, 8);
-        var lElbow = new Node(cx - 45 * scale, cy - 25 * scale, 8);
-        var rElbow = new Node(cx + 45 * scale, cy - 25 * scale, 8);
-        var lHand = new Node(cx - 65 * scale, cy + 15 * scale, 10);
-        var rHand = new Node(cx + 65 * scale, cy + 15 * scale, 10);
-
-        var lHip = new Node(cx - 15 * scale, cy + 10 * scale, 12);
-        var rHip = new Node(cx + 15 * scale, cy + 10 * scale, 12);
-        var lKnee = new Node(cx - 25 * scale, cy + 70 * scale, 9);
-        var rKnee = new Node(cx + 25 * scale, cy + 70 * scale, 9);
-        var lFoot = new Node(cx - 30 * scale, cy + 130 * scale, 12);
-        var rFoot = new Node(cx + 30 * scale, cy + 130 * scale, 12);
-
-        _nodes.push(head, neck, pelvis, lShoulder, rShoulder, lElbow, rElbow, lHand, rHand, lHip, rHip, lKnee, rKnee, lFoot, rFoot);
-
-        // 主干
-        _addConstraint(head, neck, null, 14, '#FFDEAD');
-        _addConstraint(neck, pelvis, null, 18, '#FA8072');
-        _addConstraint(lShoulder, rShoulder, null, 18, '#FA8072');
-        _addConstraint(neck, lShoulder, null, 15, '#FA8072');
-        _addConstraint(neck, rShoulder, null, 15, '#FA8072');
-        _addConstraint(pelvis, lHip, null, 16, '#2F4F4F');
-        _addConstraint(pelvis, rHip, null, 16, '#2F4F4F');
-        _addConstraint(lHip, rHip, null, 16, '#2F4F4F');
-
-        // 四肢
-        _addConstraint(lShoulder, lElbow, null, 12, '#FA8072');
-        _addConstraint(lElbow, lHand, null, 10, '#FFDEAD');
-        _addConstraint(rShoulder, rElbow, null, 12, '#FA8072');
-        _addConstraint(rElbow, rHand, null, 10, '#FFDEAD');
-
-        _addConstraint(lHip, lKnee, null, 14, '#2F4F4F');
-        _addConstraint(lKnee, lFoot, null, 12, '#2F4F4F');
-        _addConstraint(rHip, rKnee, null, 14, '#2F4F4F');
-        _addConstraint(rKnee, rFoot, null, 12, '#2F4F4F');
-
-        // 为保持形态增加一些交叉角度约束
-        _addConstraint(lShoulder, pelvis, null, 5, 'rgba(0,0,0,0)'); // 隐形腹部支撑
-        _addConstraint(rShoulder, pelvis, null, 5, 'rgba(0,0,0,0)');
-    }
-
-    function _addConstraint(n1, n2, len, thick, color) {
-        _constraints.push(new Constraint(n1, n2, len, thick, color));
-    }
-
+    /* ====== 场景生命周期 ====== */
     function init() {
         _phase = 'prepare';
         _timer = 8;
-        _touching = false;
-        _selectedNode = null;
+        _time = 0;
+        _selectedSeg = null;
         W = Engine.width();
         H = Engine.height();
-        FLOOR_Y = H * 0.85;
+        FLOOR_Y = H * 0.82;
 
-        _initStickman();
+        _initSegments();
         _setupUI();
-        _bindTouchEvents();
+        _bindTouch();
         _lastTime = performance.now();
         Engine.startLoop(render);
     }
 
     function _setupUI() {
         UI.clearButtons();
-
         if (_phase === 'prepare') {
-            UI.createButton({
-                x: 15, y: 15, w: 70, h: 36,
-                text: '← 返回',
-                color: 'rgba(255,255,255,0.7)',
-                bgColor: 'rgba(255,255,255,0.05)',
-                borderColor: 'rgba(255,255,255,0.15)',
-                fontSize: 13, radius: 18,
-                onClick: function () { App.switchScene('home'); }
-            });
-
-            var btnW = Math.min(W * 0.6, 220);
-            UI.createButton({
-                x: (W - btnW) / 2,
-                y: H * 0.72,
-                w: btnW, h: 52,
-                text: '▶ 准备开始',
-                color: '#FFF',
-                bgColor: 'rgba(250,128,114,0.3)',
-                borderColor: 'rgba(250,128,114,0.8)',
-                fontSize: 18, radius: 26,
-                onClick: function () {
-                    Audio.playTap();
-                    _phase = 'playing';
-                    _lastTime = performance.now();
-                    _setupUI();
-                }
-            });
-        } else if (_phase === 'playing') {
-            // 没有按键
+            UI.createButton({ x:15,y:15,w:70,h:36, text:'← 返回',
+                color:'rgba(255,255,255,0.7)', bgColor:'rgba(255,255,255,0.05)',
+                borderColor:'rgba(255,255,255,0.15)', fontSize:13, radius:18,
+                onClick:function(){ App.switchScene('home'); } });
+            var bw = Math.min(W*0.6,220);
+            UI.createButton({ x:(W-bw)/2, y:H*0.7, w:bw, h:52, text:'▶ 开始挑战',
+                color:'#FFF', bgColor:'rgba(250,128,114,0.3)',
+                borderColor:'rgba(250,128,114,0.8)', fontSize:18, radius:26,
+                onClick:function(){ Audio.playTap(); _phase='playing'; _lastTime=performance.now(); _setupUI(); } });
         } else if (_phase === 'result') {
-            var btnW = Math.min(W * 0.45, 160);
-            
-            // 重来
-            UI.createButton({
-                x: W / 2 - btnW - 10,
-                y: H * 0.88,
-                w: btnW, h: 48,
-                text: '↺ 重来',
-                color: '#FFF',
-                bgColor: 'rgba(255,255,255,0.1)',
-                borderColor: 'rgba(255,255,255,0.3)',
-                fontSize: 16, radius: 24,
-                onClick: function () {
-                    Audio.playTap();
-                    init();
-                }
-            });
-
-            // 保存图片
-            UI.createButton({
-                x: W / 2 + 10,
-                y: H * 0.88,
-                w: btnW, h: 48,
-                text: '⬇ 保存图片',
-                color: '#FFD700',
-                bgColor: 'rgba(255,215,0,0.2)',
-                borderColor: 'rgba(255,215,0,0.6)',
-                fontSize: 16, radius: 24,
-                onClick: function () {
-                    Audio.playSuccess();
-                    _saveImage();
-                }
-            });
-
-            UI.createButton({
-                x: 15, y: 15, w: 70, h: 36,
-                text: '← 首页',
-                color: 'rgba(255,255,255,0.7)',
-                bgColor: 'rgba(255,255,255,0.05)',
-                borderColor: 'rgba(255,255,255,0.15)',
-                fontSize: 13, radius: 18,
-                onClick: function () { App.switchScene('home'); }
-            });
+            var bw2 = Math.min(W*0.42,155);
+            UI.createButton({ x:W/2-bw2-8, y:H*0.88, w:bw2, h:46, text:'↺ 重来',
+                color:'#FFF', bgColor:'rgba(255,255,255,0.1)',
+                borderColor:'rgba(255,255,255,0.3)', fontSize:15, radius:23,
+                onClick:function(){ Audio.playTap(); init(); } });
+            UI.createButton({ x:W/2+8, y:H*0.88, w:bw2, h:46, text:'⬇ 保存图片',
+                color:'#FFD700', bgColor:'rgba(255,215,0,0.2)',
+                borderColor:'rgba(255,215,0,0.6)', fontSize:15, radius:23,
+                onClick:function(){ Audio.playSuccess(); _saveImage(); } });
+            UI.createButton({ x:15,y:15,w:70,h:36, text:'← 首页',
+                color:'rgba(255,255,255,0.7)', bgColor:'rgba(255,255,255,0.05)',
+                borderColor:'rgba(255,255,255,0.15)', fontSize:13, radius:18,
+                onClick:function(){ App.switchScene('home'); } });
         }
     }
 
-    function _bindTouchEvents() {
+    /* ====== 触摸交互 ====== */
+    function _bindTouch() {
         var canvas = Engine.getCanvas();
 
-        _touchStartHandler = function (e) {
+        _touchStartH = function (e) {
             e.preventDefault();
             if (_phase !== 'playing') return;
-            var touch = e.touches ? e.touches[0] : e;
-            var rect = canvas.getBoundingClientRect();
-            _touchX = touch.clientX - rect.left;
-            _touchY = touch.clientY - rect.top;
-            _touching = true;
-
-            // 查找最近的节点
-            var minDist = Infinity;
-            _selectedNode = null;
-            for (var i = 0; i < _nodes.length; i++) {
-                var d = _dist(_nodes[i], { x: _touchX, y: _touchY });
-                if (d < 40 && d < minDist) {
-                    minDist = d;
-                    _selectedNode = _nodes[i];
-                }
+            var pos = _touchPos(e);
+            // 寻找被点击的肢节
+            var best = null, bestD = 30;
+            for (var i = 0; i < _segments.length; i++) {
+                var s = _segments[i];
+                var d = _distToSegment(pos.x, pos.y, s.px, s.py, s.ex, s.ey);
+                if (d < bestD) { bestD = d; best = s; }
             }
-            if (_selectedNode) Device.tapVibrate();
+            if (best) {
+                _selectedSeg = best;
+                _dragPivotX = best.px;
+                _dragPivotY = best.py;
+                _dragStartAngle = Math.atan2(pos.x - _dragPivotX, -(pos.y - _dragPivotY));
+                Device.tapVibrate();
+            }
         };
 
-        _touchMoveHandler = function (e) {
+        _touchMoveH = function (e) {
             e.preventDefault();
-            if (!_touching || _phase !== 'playing') return;
-            var touch = e.touches ? e.touches[0] : e;
-            var rect = canvas.getBoundingClientRect();
-            _touchX = touch.clientX - rect.left;
-            _touchY = touch.clientY - rect.top;
+            if (!_selectedSeg || _phase !== 'playing') return;
+            var pos = _touchPos(e);
+            var newAngle = Math.atan2(pos.x - _dragPivotX, -(pos.y - _dragPivotY));
+            var delta = newAngle - _dragStartAngle;
+            // 标准化到 [-PI, PI]
+            while (delta > Math.PI) delta -= Math.PI * 2;
+            while (delta < -Math.PI) delta += Math.PI * 2;
+            if (Math.abs(delta) > 0.003) {
+                _rotateSeg(_selectedSeg, delta);
+                _computeFK();
+                _dragStartAngle = newAngle;
+            }
         };
 
-        _touchEndHandler = function (e) {
+        _touchEndH = function (e) {
             e.preventDefault();
-            _touching = false;
-            _selectedNode = null;
+            _selectedSeg = null;
         };
 
-        canvas.addEventListener('touchstart', _touchStartHandler, { passive: false });
-        canvas.addEventListener('touchmove', _touchMoveHandler, { passive: false });
-        canvas.addEventListener('touchend', _touchEndHandler, { passive: false });
-        canvas.addEventListener('mousedown', _touchStartHandler);
-        canvas.addEventListener('mousemove', _touchMoveHandler);
-        canvas.addEventListener('mouseup', _touchEndHandler);
+        canvas.addEventListener('touchstart', _touchStartH, { passive: false });
+        canvas.addEventListener('touchmove', _touchMoveH, { passive: false });
+        canvas.addEventListener('touchend', _touchEndH, { passive: false });
+        canvas.addEventListener('mousedown', _touchStartH);
+        canvas.addEventListener('mousemove', _touchMoveH);
+        canvas.addEventListener('mouseup', _touchEndH);
     }
 
-    function _updatePhysics(dt) {
-        // Verlet 积分
-        for (var i = 0; i < _nodes.length; i++) {
-            var p = _nodes[i];
-            if (p.pinned) continue;
-            
-            var vx = (p.x - p.oldX) * 0.95; // 摩擦/阻尼
-            var vy = (p.y - p.oldY) * 0.95;
-
-            vy += 0.5; // 轻微重力
-
-            p.oldX = p.x;
-            p.oldY = p.y;
-            p.x += vx;
-            p.y += vy;
-
-            // 地面碰撞
-            if (p.y > FLOOR_Y - p.radius) {
-                p.y = FLOOR_Y - p.radius;
-                // p.oldX = p.x + vx * 0.5; 
-            }
-            // 边缘反弹
-            if (p.x < p.radius) p.x = p.radius;
-            if (p.x > W - p.radius) p.x = W - p.radius;
-        }
-
-        // 手指牵引
-        if (_selectedNode && _touching) {
-            _selectedNode.x += (_touchX - _selectedNode.x) * 0.3;
-            _selectedNode.y += (_touchY - _selectedNode.y) * 0.3;
-            // 立即满足一次地面约束防止直接拖入地下
-            if (_selectedNode.y > FLOOR_Y - _selectedNode.radius) {
-                _selectedNode.y = FLOOR_Y - _selectedNode.radius;
-            }
-        }
-
-        // 约束解算迭代 (降低穿插, 增加刚性)
-        for (var iter = 0; iter < 5; iter++) {
-            for (var c = 0; c < _constraints.length; c++) {
-                var cst = _constraints[c];
-                var dx = cst.p2.x - cst.p1.x;
-                var dy = cst.p2.y - cst.p1.y;
-                var dist = Math.sqrt(dx * dx + dy * dy);
-                var diff = (cst.len - dist) / dist;
-
-                var ox = dx * 0.5 * diff;
-                var oy = dy * 0.5 * diff;
-
-                if (!cst.p1.pinned) { cst.p1.x -= ox; cst.p1.y -= oy; }
-                if (!cst.p2.pinned) { cst.p2.x += ox; cst.p2.y += oy; }
-            }
-        }
+    function _touchPos(e) {
+        var t = e.touches ? e.touches[0] : e;
+        var r = Engine.getCanvas().getBoundingClientRect();
+        return { x: t.clientX - r.left, y: t.clientY - r.top };
     }
 
+    function _distToSegment(px, py, ax, ay, bx, by) {
+        var dx = bx - ax, dy = by - ay;
+        var lenSq = dx * dx + dy * dy;
+        if (lenSq === 0) return Math.sqrt((px-ax)*(px-ax)+(py-ay)*(py-ay));
+        var t = Math.max(0, Math.min(1, ((px-ax)*dx+(py-ay)*dy)/lenSq));
+        var cx = ax + t * dx, cy = ay + t * dy;
+        return Math.sqrt((px-cx)*(px-cx)+(py-cy)*(py-cy));
+    }
+
+    /* ====== 绘制 ====== */
     function _drawStickman(ctx) {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        // 绘制连线
-        for (var i = 0; i < _constraints.length; i++) {
-            var c = _constraints[i];
-            if (c.color === 'rgba(0,0,0,0)') continue;
-            ctx.beginPath();
-            ctx.moveTo(c.p1.x, c.p1.y);
-            ctx.lineTo(c.p2.x, c.p2.y);
-            ctx.strokeStyle = c.color;
-            ctx.lineWidth = c.thickness;
-            ctx.stroke();
+        // 先画远离观者的部分（右腿），再画近处的
+        var drawOrder = ['rThigh','rShin','lShin','lThigh','torso','lUArm','lFArm','rUArm','rFArm','head'];
+        for (var di = 0; di < drawOrder.length; di++) {
+            var s = _segMap[drawOrder[di]];
+            if (!s) continue;
 
-            // 衣服阴影/高光轮廓
-            ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-            ctx.lineWidth = c.thickness + 2;
-            ctx.stroke();
-        }
-
-        // 绘制节点关节
-        for (var j = 0; j < _nodes.length; j++) {
-            var p = _nodes[j];
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-            // 头部特殊绘制
-            if (j === 0) {
-                ctx.fillStyle = '#FFDEAD';
+            if (s.isHead) {
+                // 头部画圆
+                var hcx = (s.px + s.ex) / 2;
+                var hcy = (s.py + s.ey) / 2;
+                var hr = s.len * 0.7;
+                ctx.beginPath();
+                ctx.arc(hcx, hcy, hr, 0, Math.PI * 2);
+                ctx.fillStyle = s.color;
                 ctx.fill();
                 ctx.strokeStyle = '#CD853F';
-                ctx.lineWidth = 1;
+                ctx.lineWidth = 2;
                 ctx.stroke();
-                // 脸
+                // 眼睛 — 根据 torso 方向确定朝向
+                var faceAngle = _segMap['torso'].angle;
+                var ex1x = hcx + Math.cos(faceAngle + 0.4) * hr * 0.4;
+                var ex1y = hcy + Math.sin(faceAngle + 0.4) * hr * 0.4;
+                var ex2x = hcx + Math.cos(faceAngle - 0.4) * hr * 0.4;
+                var ex2y = hcy + Math.sin(faceAngle - 0.4) * hr * 0.4;
                 ctx.fillStyle = '#000';
-                ctx.beginPath(); ctx.arc(p.x - 6, p.y - 2, 2, 0, Math.PI * 2); ctx.fill();
-                ctx.beginPath(); ctx.arc(p.x + 6, p.y - 2, 2, 0, Math.PI * 2); ctx.fill();
-                ctx.beginPath(); ctx.arc(p.x, p.y + 6, 4, 0, Math.PI); ctx.stroke();
-            } else if (j >= 7 && j <= 8) { // 手
-                ctx.fillStyle = '#FFDEAD';
-                ctx.fill();
-            } else if (j >= 13 && j <= 14) { // 鞋
-                ctx.fillStyle = '#000';
-                ctx.fill();
+                ctx.beginPath(); ctx.arc(ex1x, ex1y, 2, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(ex2x, ex2y, 2, 0, Math.PI*2); ctx.fill();
             } else {
-                ctx.fillStyle = '#fff'; // 隐藏内关节，让连线显得顺滑
-                // 只在选中时高亮
-                if (p === _selectedNode) {
-                    ctx.fillStyle = 'rgba(255,255,255, 0.5)';
-                    ctx.beginPath(); ctx.arc(p.x, p.y, p.radius * 2, 0, Math.PI * 2); ctx.fill();
-                }
+                // 暗色描边（先画，在后面）
+                ctx.beginPath();
+                ctx.moveTo(s.px, s.py);
+                ctx.lineTo(s.ex, s.ey);
+                ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+                ctx.lineWidth = s.thick + 3;
+                ctx.stroke();
+                // 主体颜色（后画，在前面）
+                ctx.beginPath();
+                ctx.moveTo(s.px, s.py);
+                ctx.lineTo(s.ex, s.ey);
+                ctx.strokeStyle = s.color;
+                ctx.lineWidth = s.thick;
+                ctx.stroke();
+            }
+
+            // 关节圆点
+            ctx.beginPath();
+            ctx.arc(s.px, s.py, 4, 0, Math.PI * 2);
+            ctx.fillStyle = '#ddd';
+            ctx.fill();
+
+            // 高亮选中
+            if (s === _selectedSeg) {
+                ctx.beginPath();
+                ctx.moveTo(s.px, s.py);
+                ctx.lineTo(s.ex, s.ey);
+                ctx.strokeStyle = 'rgba(255,255,0,0.35)';
+                ctx.lineWidth = s.thick + 12;
+                ctx.stroke();
             }
         }
+
+        // 脚 (小圆)
+        var lShin = _segMap['lShin'], rShin = _segMap['rShin'];
+        ctx.fillStyle = '#222';
+        if (lShin) { ctx.beginPath(); ctx.ellipse(lShin.px, lShin.py, 10, 5, 0, 0, Math.PI*2); ctx.fill(); }
+        if (rShin) { ctx.beginPath(); ctx.ellipse(rShin.ex, rShin.ey, 10, 5, 0, 0, Math.PI*2); ctx.fill(); }
+
+        // 手 (小圆)
+        var lf = _segMap['lFArm'], rf = _segMap['rFArm'];
+        ctx.fillStyle = '#FFDEAD';
+        if (lf) { ctx.beginPath(); ctx.arc(lf.ex, lf.ey, 5, 0, Math.PI*2); ctx.fill(); }
+        if (rf) { ctx.beginPath(); ctx.arc(rf.ex, rf.ey, 5, 0, Math.PI*2); ctx.fill(); }
     }
 
+    /* ====== 渲染循环 ====== */
     function render(ctx, w, h) {
         var now = performance.now();
         var dt = (now - _lastTime) / 1000;
         _lastTime = now;
+        _time += 0.016;
 
         if (_phase === 'playing') {
             _timer -= dt;
-            _updatePhysics();
             if (_timer <= 0) {
                 _timer = 0;
                 _phase = 'result';
+                _selectedSeg = null;
                 _setupUI();
-                Audio.playBlockDrop(); // 落地定格音效
+                Audio.playBlockDrop();
                 Device.mediumVibrate();
-                Engine.addGoldBurst(w / 2, h / 2);
+                Engine.addGoldBurst(w / 2, h * 0.4);
             }
         }
 
-        Draw.drawBackground(ctx, w, h, '#be1e2d', '#7d0013'); // 年味红
+        // 背景
+        Draw.drawBackground(ctx, w, h, '#be1e2d', '#7d0013');
 
         // 装饰灯笼
-        ctx.fillStyle = 'rgba(255,215,0,0.15)';
-        ctx.beginPath(); ctx.arc(w * 0.1, h * 0.1, 40, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(w * 0.9, h * 0.1, 40, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,215,0,0.12)';
+        ctx.beginPath(); ctx.arc(w*0.1, h*0.08, 35, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(w*0.9, h*0.08, 35, 0, Math.PI*2); ctx.fill();
 
         // 地面
         ctx.fillStyle = '#3a0808';
@@ -386,84 +337,65 @@ var StickmanScene = (function () {
         ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(0, FLOOR_Y); ctx.lineTo(w, FLOOR_Y); ctx.stroke();
 
+        _computeFK();
         _drawStickman(ctx);
 
+        // --- 阶段 UI ---
         if (_phase === 'prepare') {
-            UI.drawTitle(ctx, '拜年小人', w / 2, h * 0.15, 36, '#FFD700');
-            
+            UI.drawTitle(ctx, '拜年小人', w/2, h*0.1, 34, '#FFD700');
             ctx.save();
-            ctx.font = '16px -apple-system, sans-serif';
+            ctx.font = '15px -apple-system, "PingFang SC", sans-serif';
             ctx.fillStyle = '#fff';
             ctx.textAlign = 'center';
-            ctx.fillText('拖拽四肢，摆出拜年姿势！', w / 2, h * 0.25);
-            ctx.fillText('限时 8 秒', w / 2, h * 0.3);
+            ctx.fillText('点击并拖动肢节，摆出拜年姿势！', w/2, h*0.2);
+            ctx.fillText('限时 8 秒', w/2, h*0.25);
             ctx.restore();
         } else if (_phase === 'playing') {
-            UI.drawTitle(ctx, Math.ceil(_timer) + 's', w / 2, h * 0.12, 48, '#FFD700');
-            UI.drawSubtitle(ctx, '拖住身体并拉长为作揖状~', w / 2, h * 0.18, 14, 'rgba(255,255,255,0.7)');
+            // 倒计时
+            var timerColor = _timer <= 3 ? '#ff4444' : '#FFD700';
+            UI.drawTitle(ctx, Math.ceil(_timer) + 's', w/2, h*0.08, 48, timerColor);
+            // 提示
+            var hint = _selectedSeg ? ('正在旋转: ' + _selectedSeg.lbl) : '点击身体部位并拖动旋转';
+            UI.drawSubtitle(ctx, hint, w/2, h*0.15, 13, 'rgba(255,255,255,0.65)');
         } else if (_phase === 'result') {
-            Draw.drawHalo(ctx, w / 2, h * 0.4, 150, '#FFD700', 0.2);
-            
-            // 水印金字
+            Draw.drawHalo(ctx, w/2, h*0.35, 140, '#FFD700', 0.18);
             ctx.save();
-            ctx.translate(w / 2, h * 0.2);
-            ctx.rotate(-0.1);
-            UI.drawTitle(ctx, '🎉 新年快乐 🎉', 0, 0, 42, '#FFD700');
+            ctx.translate(w/2, h*0.15);
+            ctx.rotate(-0.08);
+            UI.drawTitle(ctx, '🎉 新年快乐 🎉', 0, 0, 38, '#FFD700');
             ctx.fillStyle = '#fff';
-            ctx.font = '16px -apple-system, sans-serif';
+            ctx.font = '15px -apple-system, "PingFang SC", sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('大吉大利 · 岁岁平安', 0, 40);
+            ctx.fillText('大吉大利 · 岁岁平安', 0, 36);
             ctx.restore();
         }
 
         UI.drawButtons(ctx);
     }
 
+    /* ====== 保存图片 ====== */
     function _saveImage() {
         var ctx = Engine.getCtx();
-        var cvs = Engine.getCanvas();
-        
-        UI.clearButtons(); 
-        
-        // 手动再渲染一帧（没有UI按键）
+        UI.clearButtons();
         render(ctx, W, H);
-
         try {
-            var dataUrl = cvs.toDataURL('image/png');
+            var url = Engine.getCanvas().toDataURL('image/png');
             var a = document.createElement('a');
-            a.href = dataUrl;
-            a.download = '新年拜年.png';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        } catch (e) {
-            alert('保存失败，请截图保存吧~');
-        }
-
-        // 恢复按键
+            a.href = url; a.download = '新年拜年.png';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        } catch (e) { alert('保存失败，请截图保存吧~'); }
         _setupUI();
     }
 
+    /* ====== 销毁 ====== */
     function destroy() {
         UI.clearButtons();
-        var canvas = Engine.getCanvas();
-        if (_touchStartHandler) {
-            canvas.removeEventListener('touchstart', _touchStartHandler);
-            canvas.removeEventListener('mousedown', _touchStartHandler);
-        }
-        if (_touchMoveHandler) {
-            canvas.removeEventListener('touchmove', _touchMoveHandler);
-            canvas.removeEventListener('mousemove', _touchMoveHandler);
-        }
-        if (_touchEndHandler) {
-            canvas.removeEventListener('touchend', _touchEndHandler);
-            canvas.removeEventListener('mouseup', _touchEndHandler);
-        }
-        _touchStartHandler = _touchMoveHandler = _touchEndHandler = null;
+        var c = Engine.getCanvas();
+        if (_touchStartH) { c.removeEventListener('touchstart',_touchStartH); c.removeEventListener('mousedown',_touchStartH); }
+        if (_touchMoveH)  { c.removeEventListener('touchmove',_touchMoveH);  c.removeEventListener('mousemove',_touchMoveH);  }
+        if (_touchEndH)   { c.removeEventListener('touchend',_touchEndH);    c.removeEventListener('mouseup',_touchEndH);    }
+        _touchStartH = _touchMoveH = _touchEndH = null;
     }
 
-    return {
-        init: init,
-        destroy: destroy
-    };
+    return { init: init, destroy: destroy };
 })();
