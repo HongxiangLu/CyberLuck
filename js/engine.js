@@ -15,6 +15,7 @@ var Engine = (function () {
     function init() {
         canvas = document.getElementById('mainCanvas');
         ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
         DPR = Math.min(window.devicePixelRatio || 1, 3);
         _resize();
         window.addEventListener('resize', _resize);
@@ -28,6 +29,7 @@ var Engine = (function () {
         canvas.style.width = W + 'px';
         canvas.style.height = H + 'px';
         ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+        ctx.imageSmoothingEnabled = false;
     }
 
     function width() { return W; }
@@ -40,6 +42,7 @@ var Engine = (function () {
         currentRender = renderFn;
         if (animationId) cancelAnimationFrame(animationId);
         function loop() {
+            ctx.imageSmoothingEnabled = false;
             ctx.clearRect(0, 0, W, H);
             if (currentRender) currentRender(ctx, W, H);
             _updateParticles(ctx);
@@ -122,7 +125,7 @@ var Engine = (function () {
             color: color || '#FFD700',
             size: size || 24,
             alpha: 1,
-            vy: -2
+            vy: -0.8 // 降低上升速度，原本是 -2
         });
     }
 
@@ -130,17 +133,20 @@ var Engine = (function () {
         for (var i = floatingTexts.length - 1; i >= 0; i--) {
             var ft = floatingTexts[i];
             ft.y += ft.vy;
-            ft.alpha -= 0.015;
+            ft.alpha -= 0.006; // 减缓透明度衰减，原本是 0.015
             if (ft.alpha <= 0) {
                 floatingTexts.splice(i, 1);
                 continue;
             }
             ctx.save();
-            ctx.font = 'bold ' + ft.size + 'px -apple-system, sans-serif';
+            ctx.font = ft.size + 'px "PoxiaoPixel"';
             ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = Math.max(2, Math.floor(ft.size / 7));
+            ctx.strokeStyle = _colorWithAlpha('#2b124c', ft.alpha);
+            ctx.strokeText(ft.text, ft.x, ft.y);
             ctx.fillStyle = _colorWithAlpha(ft.color, ft.alpha);
-            ctx.shadowColor = _colorWithAlpha(ft.color, ft.alpha * 0.5);
-            ctx.shadowBlur = 10;
             ctx.fillText(ft.text, ft.x, ft.y);
             ctx.restore();
         }

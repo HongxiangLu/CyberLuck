@@ -64,10 +64,27 @@ var App = (function () {
             Engine.init();
             UI.bindTouch(Engine.getCanvas());
             _registerScenes();
-            switchScene('home');
+            _loadFontAndStart();
         } catch (e) {
             _showError('哎呀，初始化出错了，请重启试试吧~');
         }
+    }
+
+    function _loadFontAndStart() {
+        if (!document.fonts || !document.fonts.load) {
+            switchScene('home');
+            return;
+        }
+        Promise.all([
+            document.fonts.load('16px "PoxiaoPixel"'),
+            document.fonts.load('24px "PoxiaoPixel"'),
+            document.fonts.load('36px "PoxiaoPixel"'),
+            document.fonts.ready
+        ]).then(function () {
+            switchScene('home');
+        }).catch(function () {
+            switchScene('home');
+        });
     }
 
     // 页面加载后启动

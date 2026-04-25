@@ -71,12 +71,17 @@ var StickmanScene = (function () {
 
     /* ====== 前向运动学 ====== */
     function _computeFK() {
+        var rootBob = 0;
+        if (_phase === 'prepare' || _phase === 'result') {
+            rootBob = Math.sin(_time * 4) * 3; // 待机时的轻微呼吸动效
+        }
+
         for (var i = 0; i < _segments.length; i++) {
             var s = _segments[i];
             if (!s.pid) {
                 // 根节点：固定 pivot
                 s.px = s.fpx;
-                s.py = s.fpy;
+                s.py = s.fpy + rootBob;
             } else {
                 var p = _segMap[s.pid];
                 // attach 点 = p.pivot + (p.end - p.pivot) * attachRatio
@@ -129,26 +134,26 @@ var StickmanScene = (function () {
     function _setupUI() {
         UI.clearButtons();
         if (_phase === 'prepare') {
-            UI.createButton({ x:15,y:15,w:70,h:36, text:'← 返回',
+            UI.createButton({ x:15,y:15,w:70,h:36, text:'返回',
                 color:'rgba(255,255,255,0.7)', bgColor:'rgba(255,255,255,0.05)',
                 borderColor:'rgba(255,255,255,0.15)', fontSize:13, radius:18,
                 onClick:function(){ App.switchScene('home'); } });
             var bw = Math.min(W*0.6,220);
-            UI.createButton({ x:(W-bw)/2, y:H*0.7, w:bw, h:52, text:'▶ 开始挑战',
+            UI.createButton({ x:(W-bw)/2, y:H*0.7, w:bw, h:52, text:'开始挑战',
                 color:'#FFF', bgColor:'rgba(250,128,114,0.3)',
                 borderColor:'rgba(250,128,114,0.8)', fontSize:18, radius:26,
                 onClick:function(){ Audio.playTap(); _phase='playing'; _lastTime=performance.now(); _setupUI(); } });
         } else if (_phase === 'result') {
             var bw2 = Math.min(W*0.42,155);
-            UI.createButton({ x:W/2-bw2-8, y:H*0.88, w:bw2, h:46, text:'↺ 重来',
+            UI.createButton({ x:W/2-bw2-8, y:H*0.88, w:bw2, h:46, text:'重来',
                 color:'#FFF', bgColor:'rgba(255,255,255,0.1)',
                 borderColor:'rgba(255,255,255,0.3)', fontSize:15, radius:23,
                 onClick:function(){ Audio.playTap(); init(); } });
-            UI.createButton({ x:W/2+8, y:H*0.88, w:bw2, h:46, text:'⬇ 保存图片',
+            UI.createButton({ x:W/2+8, y:H*0.88, w:bw2, h:46, text:'保存图片',
                 color:'#FFD700', bgColor:'rgba(255,215,0,0.2)',
                 borderColor:'rgba(255,215,0,0.6)', fontSize:15, radius:23,
                 onClick:function(){ Audio.playSuccess(); _saveImage(); } });
-            UI.createButton({ x:15,y:15,w:70,h:36, text:'← 首页',
+            UI.createButton({ x:15,y:15,w:70,h:36, text:'首页',
                 color:'rgba(255,255,255,0.7)', bgColor:'rgba(255,255,255,0.05)',
                 borderColor:'rgba(255,255,255,0.15)', fontSize:13, radius:18,
                 onClick:function(){ App.switchScene('home'); } });
@@ -323,18 +328,20 @@ var StickmanScene = (function () {
         }
 
         // 背景
-        Draw.drawBackground(ctx, w, h, '#be1e2d', '#7d0013');
+        Draw.drawBackground(ctx, w, h);
+        Draw.drawFrame(ctx, w, h);
+        Draw.drawPanel(ctx, w * 0.08, h * 0.08, w * 0.84, h * 0.76, Draw.THEME.panelDark, Draw.THEME.cyan, Draw.THEME.pink, Draw.THEME.ink);
 
         // 装饰灯笼
-        ctx.fillStyle = 'rgba(255,215,0,0.12)';
+        ctx.fillStyle = 'rgba(255,88,179,0.18)';
         ctx.beginPath(); ctx.arc(w*0.1, h*0.08, 35, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(w*0.9, h*0.08, 35, 0, Math.PI*2); ctx.fill();
 
         // 地面
-        ctx.fillStyle = '#3a0808';
+        ctx.fillStyle = Draw.THEME.pink;
         ctx.fillRect(0, FLOOR_Y, w, h - FLOOR_Y);
-        ctx.strokeStyle = '#f1c40f';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = Draw.THEME.ink;
+        ctx.lineWidth = 4;
         ctx.beginPath(); ctx.moveTo(0, FLOOR_Y); ctx.lineTo(w, FLOOR_Y); ctx.stroke();
 
         _computeFK();
@@ -342,31 +349,47 @@ var StickmanScene = (function () {
 
         // --- 阶段 UI ---
         if (_phase === 'prepare') {
-            UI.drawTitle(ctx, '拜年小人', w/2, h*0.1, 34, '#FFD700');
+            var titleW = 200, titleH = 48;
+            UI.drawRoundedRect(ctx, w / 2 - titleW / 2, h * 0.06, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
+            UI.drawTitle(ctx, '拜年小人', w/2, h*0.06 + titleH/2 + 2, 28, Draw.THEME.gold);
+            
             ctx.save();
-            ctx.font = '15px -apple-system, "PingFang SC", sans-serif';
-            ctx.fillStyle = '#fff';
+            ctx.font = '15px "PoxiaoPixel"';
+            ctx.fillStyle = '#fff2c1';
             ctx.textAlign = 'center';
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#24113f';
+            ctx.strokeText('点击并拖动肢节，摆出拜年姿势！', w/2, h*0.2);
             ctx.fillText('点击并拖动肢节，摆出拜年姿势！', w/2, h*0.2);
+            ctx.strokeText('限时 8 秒', w/2, h*0.25);
             ctx.fillText('限时 8 秒', w/2, h*0.25);
             ctx.restore();
         } else if (_phase === 'playing') {
             // 倒计时
-            var timerColor = _timer <= 3 ? '#ff4444' : '#FFD700';
-            UI.drawTitle(ctx, Math.ceil(_timer) + 's', w/2, h*0.08, 48, timerColor);
+            var timerColor = _timer <= 3 ? Draw.THEME.red : Draw.THEME.gold;
+            var titleW = 120, titleH = 60;
+            UI.drawRoundedRect(ctx, w / 2 - titleW / 2, h * 0.06, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
+            UI.drawTitle(ctx, Math.ceil(_timer) + 's', w/2, h*0.06 + titleH/2 + 2, 36, timerColor);
             // 提示
             var hint = _selectedSeg ? ('正在旋转: ' + _selectedSeg.lbl) : '点击身体部位并拖动旋转';
-            UI.drawSubtitle(ctx, hint, w/2, h*0.15, 13, 'rgba(255,255,255,0.65)');
+            UI.drawSubtitle(ctx, hint, w/2, h*0.16, 14, Draw.THEME.cyan);
         } else if (_phase === 'result') {
-            Draw.drawHalo(ctx, w/2, h*0.35, 140, '#FFD700', 0.18);
+            Draw.drawHalo(ctx, w/2, h*0.35, 140, Draw.THEME.gold, 0.18);
             ctx.save();
             ctx.translate(w/2, h*0.15);
             ctx.rotate(-0.08);
-            UI.drawTitle(ctx, '🎉 新年快乐 🎉', 0, 0, 38, '#FFD700');
-            ctx.fillStyle = '#fff';
-            ctx.font = '15px -apple-system, "PingFang SC", sans-serif';
+            var titleW = 260, titleH = 60;
+            UI.drawRoundedRect(ctx, -titleW / 2, -titleH / 2, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
+            UI.drawTitle(ctx, '新年快乐', 0, 2, 28, Draw.THEME.gold);
+            ctx.fillStyle = '#fff2c1';
+            ctx.font = '15px "PoxiaoPixel"';
             ctx.textAlign = 'center';
-            ctx.fillText('大吉大利 · 岁岁平安', 0, 36);
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#24113f';
+            ctx.strokeText('大吉大利 · 岁岁平安', 0, 46);
+            ctx.fillText('大吉大利 · 岁岁平安', 0, 46);
             ctx.restore();
         }
 

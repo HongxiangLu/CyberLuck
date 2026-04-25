@@ -12,12 +12,12 @@ var WoodenFishScene = (function () {
     var _ripples = [];
     var _petLevel = 0;
     var _petLevels = [
-        { name: '初心', threshold: 0, color: '#8B8B8B', glow: '#666' },
-        { name: '虔诚', threshold: 50, color: '#CD853F', glow: '#A0522D' },
-        { name: '慧根', threshold: 200, color: '#4169E1', glow: '#1E90FF' },
-        { name: '金莲', threshold: 500, color: '#FFD700', glow: '#FFA500' },
-        { name: '菩提', threshold: 1000, color: '#9370DB', glow: '#8A2BE2' },
-        { name: '圆满', threshold: 2000, color: '#FF69B4', glow: '#FF1493' }
+        { name: '初心', threshold: 0, color: '#ff3b30', glow: '#ff3b30' },
+        { name: '虔诚', threshold: 50, color: '#ff8a3d', glow: '#ff8a3d' },
+        { name: '慧根', threshold: 200, color: '#4079ff', glow: '#4079ff' },
+        { name: '金莲', threshold: 500, color: '#ffcc00', glow: '#ffcc00' },
+        { name: '菩提', threshold: 1000, color: '#6d4bff', glow: '#6d4bff' },
+        { name: '圆满', threshold: 2000, color: '#ff5482', glow: '#ff5482' }
     ];
 
     var _touchHandler = null;
@@ -39,7 +39,7 @@ var WoodenFishScene = (function () {
         // 返回按钮
         UI.createButton({
             x: 15, y: 15, w: 70, h: 36,
-            text: '← 返回',
+            text: '返回',
             color: 'rgba(255,255,255,0.7)',
             bgColor: 'rgba(255,255,255,0.05)',
             borderColor: 'rgba(255,255,255,0.15)',
@@ -115,7 +115,14 @@ var WoodenFishScene = (function () {
         if (_malletAngle > 0) _malletAngle = 0;
 
         // 背景
-        Draw.drawBackground(ctx, w, h, '#0d0d1a', '#1a0d0d');
+        Draw.drawBackground(ctx, w, h);
+        Draw.drawFrame(ctx, w, h);
+        Draw.drawPanel(ctx, w * 0.08, h * 0.1, w * 0.84, h * 0.68, Draw.THEME.panelDark, Draw.THEME.cyan, Draw.THEME.pink, Draw.THEME.ink);
+        Draw.drawPanel(ctx, w * 0.15, h * 0.8, w * 0.7, h * 0.08, Draw.THEME.panel, Draw.THEME.pink, Draw.THEME.cyan, Draw.THEME.ink);
+
+        var titleW = 200, titleH = 48;
+        UI.drawRoundedRect(ctx, w / 2 - titleW / 2, h * 0.08, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
+        UI.drawTitle(ctx, '功德 ' + _merit, w / 2, h * 0.08 + titleH / 2 + 2, 24, Draw.THEME.gold);
 
         // 波纹
         for (var ri = _ripples.length - 1; ri >= 0; ri--) {
@@ -125,8 +132,8 @@ var WoodenFishScene = (function () {
             if (rp.alpha <= 0) { _ripples.splice(ri, 1); continue; }
             ctx.beginPath();
             ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2);
-            ctx.strokeStyle = 'rgba(255,215,0,' + rp.alpha + ')';
-            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = 'rgba(255,216,76,' + rp.alpha + ')';
+            ctx.lineWidth = 3;
             ctx.stroke();
         }
 
@@ -136,19 +143,25 @@ var WoodenFishScene = (function () {
         // 光环 — 随等级变色
         Draw.drawHalo(ctx, w / 2, h * 0.48, 110 + _petLevel * 10, level.glow, 0.15 + Math.sin(_time * 2) * 0.05);
 
-        // 木鱼
-        Draw.drawWoodenFish(ctx, w / 2, h * 0.48, 1.2 + _petLevel * 0.05, _hitAnim > 0.1);
+        // 木鱼（增加被敲击时的弹性缩放）
+        var bounceScale = 1.0;
+        if (_hitAnim > 0) {
+            bounceScale = 1.0 - _hitAnim * 0.15; // 被敲击时稍微缩小
+        }
+        var baseScale = 1.2 + _petLevel * 0.05;
+        Draw.drawWoodenFish(ctx, w / 2, h * 0.48, baseScale * bounceScale, _hitAnim > 0.1);
 
         // 木棰
         Draw.drawMallet(ctx, w / 2 + 65, h * 0.38, 0.9, _malletAngle);
 
-        // 功德计数
-        UI.drawTitle(ctx, '功德 ' + _merit, w / 2, h * 0.12, 28, '#FFD700');
-
         // 灵宠等级
         ctx.save();
-        ctx.font = 'bold 16px -apple-system, "PingFang SC", sans-serif';
+        ctx.font = '16px "PoxiaoPixel"';
         ctx.textAlign = 'center';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#24113f';
+        ctx.strokeText('境界：' + level.name, w / 2, h * 0.19);
         ctx.fillStyle = level.color;
         ctx.fillText('境界：' + level.name, w / 2, h * 0.19);
         ctx.restore();
@@ -158,14 +171,14 @@ var WoodenFishScene = (function () {
             var progress = (_merit - level.threshold) / (nextLevel.threshold - level.threshold);
             var barW = Math.min(w * 0.6, 200);
             UI.drawProgressBar(ctx, (w - barW) / 2, h * 0.22, barW, 6, progress, level.color);
-            UI.drawSubtitle(ctx, '下一境界: ' + nextLevel.name + ' (' + nextLevel.threshold + ')', w / 2, h * 0.26, 11, 'rgba(255,255,255,0.3)');
+            UI.drawSubtitle(ctx, '下一境界: ' + nextLevel.name + ' (' + nextLevel.threshold + ')', w / 2, h * 0.26, 11, '#63efff');
         } else {
-            UI.drawSubtitle(ctx, '✨ 已臻圆满 ✨', w / 2, h * 0.24, 14, '#FF69B4');
+            UI.drawSubtitle(ctx, '像素灵宠已满级', w / 2, h * 0.24, 14, '#ff58b3');
         }
 
         // 提示
         var tapAlpha = 0.3 + Math.sin(_time * 3) * 0.15;
-        UI.drawSubtitle(ctx, '点击敲击木鱼', w / 2, h * 0.72, 14, 'rgba(255,255,255,' + tapAlpha + ')');
+        UI.drawSubtitle(ctx, '点击敲击木鱼', w / 2, h * 0.72, 14, 'rgba(255,242,193,' + tapAlpha + ')');
 
         // 流光粒子环绕
         if (_petLevel >= 2) {

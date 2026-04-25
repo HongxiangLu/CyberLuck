@@ -24,7 +24,7 @@ var MoonBlocksScene = (function () {
     var results = {
         sheng: {
             name: '圣杯',
-            emoji: '🌙',
+            emoji: '',
             desc: '一正一反',
             message: '神明应允，心诚则灵',
             detail: '此为吉兆，所求之事可期而待',
@@ -32,7 +32,7 @@ var MoonBlocksScene = (function () {
         },
         xiao: {
             name: '笑杯',
-            emoji: '😊',
+            emoji: '',
             desc: '双正',
             message: '神明微笑，再问一次',
             detail: '问题尚需明确，不妨换个方式再问',
@@ -40,7 +40,7 @@ var MoonBlocksScene = (function () {
         },
         ku: {
             name: '哭杯',
-            emoji: '😢',
+            emoji: '',
             desc: '双反',
             message: '时机未到，静候佳音',
             detail: '莫急莫躁，耐心等待时机成熟',
@@ -68,7 +68,7 @@ var MoonBlocksScene = (function () {
         // 返回
         UI.createButton({
             x: 15, y: 15, w: 70, h: 36,
-            text: '← 返回',
+            text: '返回',
             color: 'rgba(255,255,255,0.7)',
             bgColor: 'rgba(255,255,255,0.05)',
             borderColor: 'rgba(255,255,255,0.15)',
@@ -83,7 +83,7 @@ var MoonBlocksScene = (function () {
                 x: (W - 240) / 2,
                 y: Engine.height() * 0.75,
                 w: 240, h: 50,
-                text: '📱 开启体感权限',
+                text: '开启体感权限',
                 color: '#CD853F',
                 bgColor: 'rgba(205,133,63,0.2)',
                 borderColor: 'rgba(205,133,63,0.5)',
@@ -139,7 +139,7 @@ var MoonBlocksScene = (function () {
 
         UI.createButton({
             x: 15, y: 15, w: 70, h: 36,
-            text: '← 返回',
+            text: '返回',
             color: 'rgba(255,255,255,0.7)',
             bgColor: 'rgba(255,255,255,0.05)',
             borderColor: 'rgba(255,255,255,0.15)',
@@ -269,7 +269,7 @@ var MoonBlocksScene = (function () {
 
         UI.createButton({
             x: 15, y: 15, w: 70, h: 36,
-            text: '← 首页',
+            text: '首页',
             color: 'rgba(255,255,255,0.7)',
             bgColor: 'rgba(255,255,255,0.05)',
             borderColor: 'rgba(255,255,255,0.15)',
@@ -281,7 +281,9 @@ var MoonBlocksScene = (function () {
     function render(ctx, w, h) {
         _time += 0.016;
 
-        Draw.drawBackground(ctx, w, h, '#0d0a1a', '#1a0d15');
+        Draw.drawBackground(ctx, w, h);
+        Draw.drawFrame(ctx, w, h);
+        Draw.drawPanel(ctx, w * 0.08, h * 0.1, w * 0.84, h * 0.68, Draw.THEME.panelDark, Draw.THEME.cyan, Draw.THEME.pink, Draw.THEME.ink);
 
         // 装饰
         Draw.drawCloud(ctx, (_time * 10 % (w + 100)) - 50, h * 0.08, 0.5, 0.06);
@@ -302,28 +304,37 @@ var MoonBlocksScene = (function () {
     }
 
     function _renderPrepare(ctx, w, h) {
-        UI.drawTitle(ctx, '掷杯筊', w / 2, h * 0.1, 28, '#CD853F');
+        var titleW = 200, titleH = 48;
+        UI.drawRoundedRect(ctx, w / 2 - titleW / 2, h * 0.08, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
+        UI.drawTitle(ctx, '掷杯筊', w / 2, h * 0.08 + titleH / 2 + 2, 24, Draw.THEME.gold);
 
         // 展示杯筊
         Draw.drawMoonBlock(ctx, w * 0.38, h * 0.38, 1.5, true, Math.sin(_time) * 0.1);
         Draw.drawMoonBlock(ctx, w * 0.62, h * 0.42, 1.5, false, Math.cos(_time) * 0.1);
 
-        Draw.drawHalo(ctx, w / 2, h * 0.4, 100, '#CD853F', 0.1 + Math.sin(_time * 2) * 0.04);
+        Draw.drawHalo(ctx, w / 2, h * 0.4, 100, '#ff58b3', 0.1 + Math.sin(_time * 2) * 0.04);
 
         // 提示
         var alpha = 0.5 + Math.sin(_time * 3) * 0.3;
         ctx.save();
-        ctx.font = '16px -apple-system, "PingFang SC", sans-serif';
+        ctx.font = '16px "PoxiaoPixel"';
         ctx.textAlign = 'center';
-        ctx.fillStyle = 'rgba(205,133,63,' + alpha + ')';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#24113f';
+        ctx.fillStyle = 'rgba(255,216,76,' + alpha + ')';
 
         if (Device.isMotionGranted() || !Device.isMotionSupported()) {
-            ctx.fillText('🙏 双手握住手机', w / 2, h * 0.58);
-            ctx.font = '14px -apple-system, "PingFang SC", sans-serif';
-            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.strokeText('双手握住手机', w / 2, h * 0.58);
+            ctx.fillText('双手握住手机', w / 2, h * 0.58);
+            ctx.font = '14px "PoxiaoPixel"';
+            ctx.fillStyle = '#fff2c1';
+            ctx.strokeText('心中默念问题', w / 2, h * 0.63);
             ctx.fillText('心中默念问题', w / 2, h * 0.63);
+            ctx.strokeText(Device.isMotionSupported() ? '按住屏幕后晃动手机投掷' : '按住屏幕后点击投掷', w / 2, h * 0.67);
             ctx.fillText(Device.isMotionSupported() ? '按住屏幕后晃动手机投掷' : '按住屏幕后点击投掷', w / 2, h * 0.67);
         } else {
+            ctx.strokeText('请先开启体感权限', w / 2, h * 0.6);
             ctx.fillText('请先开启体感权限', w / 2, h * 0.6);
         }
         ctx.restore();
@@ -331,7 +342,9 @@ var MoonBlocksScene = (function () {
 
     function _renderShaking(ctx, w, h) {
         var shake = Math.sin(_time * 20) * 3;
-        UI.drawTitle(ctx, '掷杯筊', w / 2, h * 0.1, 24, '#CD853F');
+        var titleW = 200, titleH = 48;
+        UI.drawRoundedRect(ctx, w / 2 - titleW / 2, h * 0.08, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
+        UI.drawTitle(ctx, '掷杯筊', w / 2, h * 0.08 + titleH / 2 + 2, 24, Draw.THEME.gold);
 
         // 抖动效果
         ctx.save();
@@ -342,15 +355,20 @@ var MoonBlocksScene = (function () {
 
         // 进度
         ctx.save();
-        ctx.font = 'bold 36px -apple-system, sans-serif';
+        ctx.font = '36px "PoxiaoPixel"';
         ctx.textAlign = 'center';
-        ctx.fillStyle = '#CD853F';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#24113f';
+        ctx.strokeText(_shakeCount + ' / ' + _requiredShakes, w / 2, h * 0.6);
+        ctx.fillStyle = '#ffd84c';
         ctx.fillText(_shakeCount + ' / ' + _requiredShakes, w / 2, h * 0.6);
 
-        ctx.font = '14px -apple-system, "PingFang SC", sans-serif';
-        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.font = '14px "PoxiaoPixel"';
+        ctx.lineWidth = 3;
+        ctx.fillStyle = '#fff2c1';
         if (!_touching) {
-            ctx.fillStyle = 'rgba(255,150,100,0.8)';
+            ctx.fillStyle = '#ff5a48';
             ctx.fillText('请按住屏幕不要松手', w / 2, h * 0.66);
         } else if (Device.isMotionSupported()) {
             ctx.fillText('用力晃动手机！', w / 2, h * 0.66);
@@ -359,13 +377,15 @@ var MoonBlocksScene = (function () {
         }
         ctx.restore();
 
-        UI.drawProgressBar(ctx, (w - 180) / 2, h * 0.7, 180, 6, _shakeCount / _requiredShakes, '#CD853F');
+        UI.drawProgressBar(ctx, (w - 180) / 2, h * 0.7, 180, 8, _shakeCount / _requiredShakes, '#ff58b3');
 
 
     }
 
     function _renderFalling(ctx, w, h) {
-        UI.drawTitle(ctx, '掷杯筊', w / 2, h * 0.1, 24, '#CD853F');
+        var titleW = 200, titleH = 48;
+        UI.drawRoundedRect(ctx, w / 2 - titleW / 2, h * 0.08, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
+        UI.drawTitle(ctx, '掷杯筊', w / 2, h * 0.08 + titleH / 2 + 2, 24, Draw.THEME.gold);
 
         // 落下动画
         var blocks = [_block1, _block2];
@@ -410,30 +430,32 @@ var MoonBlocksScene = (function () {
         ctx.globalAlpha = fadeIn;
 
         // 结果标题
-        ctx.font = 'bold 42px -apple-system, sans-serif';
+        ctx.font = '42px "PoxiaoPixel"';
         ctx.textAlign = 'center';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = '#24113f';
+        ctx.strokeText(r.name, w / 2, h * 0.25);
         ctx.fillStyle = r.color;
-        ctx.shadowColor = r.color;
-        ctx.shadowBlur = 20;
-        ctx.fillText(r.emoji + ' ' + r.name, w / 2, h * 0.25);
-        ctx.shadowBlur = 0;
+        ctx.fillText(r.name, w / 2, h * 0.25);
 
         // 描述
-        ctx.font = '14px -apple-system, "PingFang SC", sans-serif';
-        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.font = '14px "PoxiaoPixel"';
+        ctx.lineWidth = 3;
+        ctx.strokeText(r.desc, w / 2, h * 0.31);
+        ctx.fillStyle = '#63efff';
         ctx.fillText(r.desc, w / 2, h * 0.31);
 
         // 主语
-        ctx.font = '20px -apple-system, "PingFang SC", sans-serif';
-        ctx.fillStyle = '#FFF8DC';
-        ctx.shadowColor = r.color;
-        ctx.shadowBlur = 15;
+        ctx.font = '20px "PoxiaoPixel"';
+        ctx.strokeText('「' + r.message + '」', w / 2, h * 0.7);
+        ctx.fillStyle = '#fff2c1';
         ctx.fillText('「' + r.message + '」', w / 2, h * 0.7);
-        ctx.shadowBlur = 0;
 
         // 副语
-        ctx.font = '14px -apple-system, "PingFang SC", sans-serif';
-        ctx.fillStyle = 'rgba(255,248,220,0.55)';
+        ctx.font = '14px "PoxiaoPixel"';
+        ctx.strokeText(r.detail, w / 2, h * 0.76);
+        ctx.fillStyle = '#ff8a3d';
         ctx.fillText(r.detail, w / 2, h * 0.76);
 
         ctx.restore();

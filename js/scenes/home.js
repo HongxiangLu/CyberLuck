@@ -7,11 +7,19 @@ var HomeScene = (function () {
     var buttons = [];
     var clouds = [];
     var _time = 0;
+    var _heroImg = null;
+    var _clickAnim = 0;
+    var _touchHandler = null;
 
     function init() {
         UI.clearButtons();
         buttons = [];
         clouds = [];
+        
+        if (!_heroImg) {
+            _heroImg = new Image();
+            _heroImg.src = './images/李诡祖增福财神.png';
+        }
 
         // 生成装饰祥云
         for (var i = 0; i < 6; i++) {
@@ -33,10 +41,10 @@ var HomeScene = (function () {
         var bx = (W - btnW) / 2;
 
         var scenes = [
-            { text: '🙏 拜财神', icon: null, scene: 'worship', color: '#FFD700', bg: 'rgba(255,215,0,0.1)', border: 'rgba(255,215,0,0.35)' },
-            { text: '🐟 木鱼灵宠', icon: null, scene: 'woodenfish', color: '#DEB887', bg: 'rgba(222,184,135,0.1)', border: 'rgba(222,184,135,0.35)' },
-            { text: '🌙 掷杯筊', icon: null, scene: 'moonblocks', color: '#CD853F', bg: 'rgba(205,133,63,0.1)', border: 'rgba(205,133,63,0.35)' },
-            { text: '🏃‍♂️ 拜年小人', icon: null, scene: 'stickman', color: '#FA8072', bg: 'rgba(250,128,114,0.1)', border: 'rgba(250,128,114,0.35)' }
+            { text: '拜财神', scene: 'worship', color: '#ff4da6', bg: 'rgba(255,77,166,0.15)', border: '#ff4da6' },
+            { text: '木鱼灵宠', scene: 'woodenfish', color: '#4de1ff', bg: 'rgba(77,225,255,0.15)', border: '#4de1ff' },
+            { text: '掷杯筊', scene: 'moonblocks', color: '#ffb34d', bg: 'rgba(255,179,77,0.15)', border: '#ffb34d' },
+            { text: '拜年小人', scene: 'stickman', color: '#4dffb3', bg: 'rgba(77,255,179,0.15)', border: '#4dffb3' }
         ];
 
         for (var j = 0; j < scenes.length; j++) {
@@ -60,13 +68,54 @@ var HomeScene = (function () {
         }
 
         Engine.startLoop(render);
+        _bindTouch();
+    }
+
+    function _bindTouch() {
+        var canvas = Engine.getCanvas();
+        if (_touchHandler) {
+            canvas.removeEventListener('touchstart', _touchHandler);
+            canvas.removeEventListener('mousedown', _touchHandler);
+        }
+
+        _touchHandler = function (e) {
+            var rect = canvas.getBoundingClientRect();
+            var touch = e.touches ? e.touches[0] : e;
+            var x = touch.clientX - rect.left;
+            var y = touch.clientY - rect.top;
+            
+            var w = Engine.width();
+            var h = Engine.height();
+            var imgH = 150;
+            var imgW = 150;
+            if (_heroImg && _heroImg.complete) {
+                imgW = imgH * (_heroImg.naturalWidth / _heroImg.naturalHeight || 1);
+            }
+            
+            var hoverY = Math.sin(_time * 2.5) * 6;
+            var cx = w / 2;
+            var cy = h * 0.26 + hoverY;
+
+            // 检测是否点击在财神区域内
+            if (x > cx - imgW / 2 && x < cx + imgW / 2 && y > cy - imgH / 2 && y < cy + imgH / 2) {
+                _clickAnim = 1;
+                Audio.init();
+                Audio.playSuccess();
+                Device.tapVibrate();
+                Engine.addFloatingText(x + (Math.random() - 0.5) * 40, y - 20, '财运 +1', '#FFD700', 22);
+            }
+        };
+
+        canvas.addEventListener('touchstart', _touchHandler, { passive: true });
+        canvas.addEventListener('mousedown', _touchHandler);
     }
 
     function render(ctx, w, h) {
         _time += 0.016;
 
         // 背景
-        Draw.drawBackground(ctx, w, h, '#0a0a2e', '#1a0a2e');
+        Draw.drawBackground(ctx, w, h);
+        Draw.drawFrame(ctx, w, h);
 
         // 祥云动画
         for (var i = 0; i < clouds.length; i++) {
@@ -76,18 +125,47 @@ var HomeScene = (function () {
             Draw.drawCloud(ctx, c.x, c.y, c.s, c.alpha);
         }
 
-        // 光晕
-        Draw.drawHalo(ctx, w / 2, h * 0.22, 120, '#FFD700', 0.15 + Math.sin(_time * 2) * 0.05);
+        // Main panels
+        Draw.drawPanel(ctx, w * 0.08, h * 0.08, w * 0.84, h * 0.28, Draw.THEME.panelDark, Draw.THEME.cyan, Draw.THEME.pink, Draw.THEME.ink);
+        Draw.drawPanel(ctx, w * 0.08, h * 0.38, w * 0.84, h * 0.50, Draw.THEME.panel, Draw.THEME.pink, Draw.THEME.cyan, Draw.THEME.ink);
+        
+        Draw.drawHalo(ctx, w / 2, h * 0.22, 120, Draw.THEME.pink, 0.15 + Math.sin(_time * 2) * 0.05);
 
-        // 标题
-        UI.drawTitle(ctx, '福运三宝', w / 2, h * 0.15, 36, '#FFD700');
-        UI.drawSubtitle(ctx, '虔诚祈福 · 好运连连', w / 2, h * 0.22, 14, 'rgba(255,215,0,0.5)');
+        // Draw Title Pill Background
+        var titleW = 280;
+        var titleH = 64;
+        var titleX = w / 2 - titleW / 2;
+        var titleY = h * 0.08;
+        
+        UI.drawRoundedRect(ctx, titleX, titleY, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
+        
+        // Header
+        UI.drawTitle(ctx, '这年我拜爆了', w / 2, titleY + titleH / 2 + 2, 32, Draw.THEME.gold);
 
-        // 小财神预览
-        Draw.drawZhaoGongMing(ctx, w / 2, h * 0.32, 0.6);
+        // 衰减点击动画
+        if (_clickAnim > 0) _clickAnim *= 0.85;
+        if (_clickAnim < 0.01) _clickAnim = 0;
+
+        // 小财神预览动效（上下悬浮 + 点击缩放）
+        var hoverY = Math.sin(_time * 2.5) * 6;
+        var scale = 1.0 + _clickAnim * 0.15; // 点击时放大 15%
+        
+        ctx.save();
+        if (_heroImg && _heroImg.complete) {
+            var imgH = 150;
+            var imgW = imgH * (_heroImg.naturalWidth / _heroImg.naturalHeight || 1);
+            ctx.translate(w / 2, h * 0.26 + hoverY);
+            ctx.scale(scale, scale);
+            ctx.drawImage(_heroImg, -imgW / 2, -imgH / 2, imgW, imgH);
+        } else {
+            ctx.translate(w / 2, h * 0.28 + hoverY);
+            ctx.scale(scale, scale);
+            Draw.drawZhaoGongMing(ctx, 0, 0, 0.65);
+        }
+        ctx.restore();
 
         // 版本信息
-        UI.drawSubtitle(ctx, '长按屏幕开始体验', w / 2, h * 0.92, 12, 'rgba(255,255,255,0.25)');
+        UI.drawSubtitle(ctx, '今年的好运，先拜为敬', w / 2, h * 0.92, 16, Draw.THEME.cyan);
 
         // 按钮
         UI.drawButtons(ctx);
@@ -96,6 +174,12 @@ var HomeScene = (function () {
     function destroy() {
         UI.clearButtons();
         buttons = [];
+        var canvas = Engine.getCanvas();
+        if (_touchHandler) {
+            canvas.removeEventListener('touchstart', _touchHandler);
+            canvas.removeEventListener('mousedown', _touchHandler);
+        }
+        _touchHandler = null;
     }
 
     return {
