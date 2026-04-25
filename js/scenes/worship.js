@@ -4,7 +4,7 @@
 var WorshipScene = (function () {
     'use strict';
 
-    var _phase = 'select'; // select → prepare → bowing → result
+    var _phase = 'select'; // select → prepare → bowing → result(燃烧显影/海报)
     var _selectedGod = 0;
     var _bowCount = 0;
     var _maxBows = 3;
@@ -33,16 +33,48 @@ var WorshipScene = (function () {
     var _imagesLoaded = false;
     var _worshipCost = 10;
     var _insufficientHintTimer = 0;
+    var _posterState = 'idle';
+    var _posterGeneratedUrl = '';
+    var _posterBindingReady = false;
+    var _godImageMapping = {
+        '赵公明·正财神': './images/赵公明·正财神.png',
+        '关二爷·武财神': './images/关二爷·武财神.png',
+        '比干·文财神': './images/比干·文财神.png',
+        '范蠡·商财神': './images/范蠡·商财神.png'
+    };
+    var _qrPlaceholder = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180">' +
+        '<rect width="180" height="180" fill="#ffffff"/>' +
+        '<rect x="12" y="12" width="48" height="48" fill="#111111"/>' +
+        '<rect x="24" y="24" width="24" height="24" fill="#ffffff"/>' +
+        '<rect x="120" y="12" width="48" height="48" fill="#111111"/>' +
+        '<rect x="132" y="24" width="24" height="24" fill="#ffffff"/>' +
+        '<rect x="12" y="120" width="48" height="48" fill="#111111"/>' +
+        '<rect x="24" y="132" width="24" height="24" fill="#ffffff"/>' +
+        '<rect x="78" y="18" width="12" height="12" fill="#111111"/>' +
+        '<rect x="90" y="30" width="12" height="12" fill="#111111"/>' +
+        '<rect x="102" y="18" width="12" height="12" fill="#111111"/>' +
+        '<rect x="78" y="54" width="12" height="12" fill="#111111"/>' +
+        '<rect x="96" y="60" width="18" height="18" fill="#111111"/>' +
+        '<rect x="72" y="84" width="12" height="12" fill="#111111"/>' +
+        '<rect x="90" y="90" width="18" height="18" fill="#111111"/>' +
+        '<rect x="120" y="78" width="12" height="12" fill="#111111"/>' +
+        '<rect x="132" y="90" width="12" height="12" fill="#111111"/>' +
+        '<rect x="144" y="102" width="12" height="12" fill="#111111"/>' +
+        '<rect x="72" y="120" width="12" height="12" fill="#111111"/>' +
+        '<rect x="84" y="132" width="24" height="12" fill="#111111"/>' +
+        '<rect x="114" y="126" width="12" height="12" fill="#111111"/>' +
+        '<rect x="126" y="138" width="12" height="12" fill="#111111"/>' +
+        '<rect x="144" y="126" width="18" height="18" fill="#111111"/>' +
+        '<rect x="72" y="150" width="12" height="12" fill="#111111"/>' +
+        '<rect x="96" y="150" width="12" height="12" fill="#111111"/>' +
+        '<rect x="120" y="156" width="12" height="12" fill="#111111"/>' +
+        '</svg>'
+    );
 
     /** 预加载所有财神 PNG 图片 */
     function _preloadGodImages(callback) {
-        var mapping = {
-            '赵公明·正财神': './images/赵公明·正财神.png',
-            '关二爷·武财神': './images/关二爷·武财神.png',
-            '比干·文财神': './images/比干·文财神.png',
-            '范蠡·商财神': './images/范蠡·商财神.png'
-        };
-        var keys = Object.keys(mapping);
+        var keys = Object.keys(_godImageMapping);
         var loaded = 0;
         var total = keys.length;
         for (var i = 0; i < keys.length; i++) {
@@ -66,7 +98,7 @@ var WorshipScene = (function () {
                     }
                 };
                 img.src = src;
-            })(keys[i], mapping[keys[i]]);
+            })(keys[i], _godImageMapping[keys[i]]);
         }
     }
 
@@ -134,6 +166,7 @@ var WorshipScene = (function () {
             color: '#ff2a2a',
             desc: '掌八方财运，护日常财源，佑稳步暴富',
             hint: '求财刚需首选，打工存钱专属守护神',
+            posterBlessing: '福佑：财源滚滚',
             quotes: [
                 '五路财神到，金银满堂招',
                 '招财进宝，日进斗金',
@@ -147,6 +180,7 @@ var WorshipScene = (function () {
             color: '#228B22',
             desc: '守忠义正气，镇职场是非，助事业顺遂',
             hint: '职场打拼、面试晋升、远离职场内耗',
+            posterBlessing: '福佑：事业开挂',
             quotes: [
                 '忠义相随，财运亨通',
                 '义薄云天，福泽绵长',
@@ -160,6 +194,7 @@ var WorshipScene = (function () {
             color: '#8a2be2',
             desc: '揽平安福气，解心头烦忧，护岁岁安稳',
             hint: '求身心舒畅、平安健康、告别emo',
+            posterBlessing: '福佑：福运安康',
             quotes: [
                 '心正则财正，无私则无患',
                 '七窍玲珑心，公正聚财运',
@@ -173,6 +208,7 @@ var WorshipScene = (function () {
             color: '#00f0ff',
             desc: '通财富玄机，助副业增收，利意外之财',
             hint: '副业创收、理财转运、咸鱼翻身',
+            posterBlessing: '福佑：偏财觉醒',
             quotes: [
                 '商道筹谋，财源滚滚',
                 '聚财聚气，万事如意',
@@ -190,7 +226,11 @@ var WorshipScene = (function () {
         _time = 0;
         _motionRequested = false;
         _insufficientHintTimer = 0;
+        _posterState = 'idle';
+        _posterGeneratedUrl = '';
         UI.clearButtons();
+        _hidePosterOverlay();
+        _ensurePosterDom();
         _setupSelectButtons();
         Engine.startLoop(render);
         _bindTouchEvents();
@@ -531,45 +571,27 @@ var WorshipScene = (function () {
     function _showResult() {
         _phase = 'result';
         _resultTimer = 0;
+        _posterState = 'idle';
+        _posterGeneratedUrl = '';
+        _hidePosterOverlay();
         var god = gods[_selectedGod];
         var W = Engine.width();
 
-        // 选定语录（只选一次，不在渲染循环中随机）
         _resultQuote = god.quotes[Math.floor(Math.random() * god.quotes.length)];
 
-        Engine.addGoldBurst(W / 2, Engine.height() * 0.35);
+        Engine.addGoldBurst(W / 2, Engine.height() * 0.35, {
+            count: 32,
+            speed: 3.8,
+            ringRadius: 34,
+            upwardLift: 0.55,
+            flashCoreRadius: 12,
+            flashHaloRadius: 22
+        });
         Audio.playSuccess();
         Device.mediumVibrate();
         MeritSystem.deductPoints(_worshipCost);
-        MeritSystem.showToast('虔心已达，消耗 10 功德', 'success');
-
+        MeritSystem.showToast('虔心已达，神谕正在显影', 'success');
         UI.clearButtons();
-        var btnW = Math.min(W * 0.55, 200);
-        UI.createButton({
-            x: (W - btnW) / 2,
-            y: Engine.height() * 0.85,
-            w: btnW, h: 48,
-            text: '再拜一次',
-            color: '#FFD700',
-            bgColor: 'rgba(255,215,0,0.15)',
-            borderColor: 'rgba(255,215,0,0.4)',
-            fontSize: 16, radius: 24,
-            onClick: function () {
-                Audio.playTap();
-                _phase = 'select';
-                _setupSelectButtons();
-            }
-        });
-
-        UI.createButton({
-            x: 15, y: 15, w: 70, h: 36,
-            text: '首页',
-            color: 'rgba(255,255,255,0.7)',
-            bgColor: 'rgba(255,255,255,0.05)',
-            borderColor: 'rgba(255,255,255,0.15)',
-            fontSize: 13, radius: 18,
-            onClick: function () { App.switchScene('home'); }
-        });
     }
 
     function render(ctx, w, h) {
@@ -825,42 +847,305 @@ var WorshipScene = (function () {
         UI.drawProgressBar(ctx, (w - barW) / 2, h * 0.66, barW, 8, _bowCount / _maxBows, '#ff58b3');
     }
 
+    function _ensurePosterDom() {
+        var overlay = document.getElementById('posterOverlay');
+        var poster = document.getElementById('sharePoster');
+        if (!overlay || !poster) return null;
+
+        var els = {
+            overlay: overlay,
+            poster: poster,
+            previewImage: document.getElementById('posterPreviewImage'),
+            replayButton: document.getElementById('posterReplayButton'),
+            homeButton: document.getElementById('posterHomeButton'),
+            nickname: document.getElementById('posterNickname'),
+            godImage: document.getElementById('posterGodImage'),
+            godName: document.getElementById('posterGodName'),
+            blessing: document.getElementById('posterBlessing'),
+            quote: document.getElementById('posterQuote'),
+            qrImage: document.getElementById('posterQrImage')
+        };
+
+        if (els.qrImage && els.qrImage.src !== _qrPlaceholder) {
+            els.qrImage.src = _qrPlaceholder;
+        }
+
+        if (!_posterBindingReady && els.replayButton && els.homeButton) {
+            els.replayButton.addEventListener('click', function () {
+                Audio.playTap();
+                _hidePosterOverlay();
+                _posterState = 'idle';
+                _posterGeneratedUrl = '';
+                _phase = 'select';
+                _resultTimer = 0;
+                _setupSelectButtons();
+            });
+            els.homeButton.addEventListener('click', function () {
+                Audio.playTap();
+                _hidePosterOverlay();
+                App.switchScene('home');
+            });
+            _posterBindingReady = true;
+        }
+
+        return els;
+    }
+
+    function _hidePosterOverlay() {
+        var overlay = document.getElementById('posterOverlay');
+        var preview = document.getElementById('posterPreviewImage');
+        if (overlay) overlay.hidden = true;
+        if (preview) preview.removeAttribute('src');
+    }
+
+    function _getPosterNickname() {
+        var key = 'cyberluck.posterNickname';
+        try {
+            var stored = localStorage.getItem(key);
+            if (stored) return stored;
+            stored = '赛博信众#' + (1000 + Math.floor(Math.random() * 9000));
+            localStorage.setItem(key, stored);
+            return stored;
+        } catch (e) {
+            return '赛博信众#' + (1000 + Math.floor(Math.random() * 9000));
+        }
+    }
+
+    function _fillPosterDom(god) {
+        var els = _ensurePosterDom();
+        if (!els) return null;
+        if (els.nickname) els.nickname.textContent = _getPosterNickname();
+        if (els.godName) els.godName.textContent = god.name;
+        if (els.blessing) els.blessing.textContent = god.posterBlessing || '福佑：财源滚滚';
+        if (els.quote) els.quote.textContent = '「' + _resultQuote + '」';
+        if (els.godImage) {
+            els.godImage.src = _godImageMapping[god.name] || '';
+            els.godImage.alt = god.name;
+        }
+        if (els.qrImage) els.qrImage.src = _qrPlaceholder;
+        return els;
+    }
+
+    function _waitForImage(img) {
+        return new Promise(function (resolve) {
+            if (!img) {
+                resolve();
+                return;
+            }
+            if (img.complete && img.naturalWidth !== 0) {
+                resolve();
+                return;
+            }
+            var done = function () {
+                img.removeEventListener('load', done);
+                img.removeEventListener('error', done);
+                resolve();
+            };
+            img.addEventListener('load', done);
+            img.addEventListener('error', done);
+        });
+    }
+
+    function _showPosterOverlay(dataUrl) {
+        var els = _ensurePosterDom();
+        if (!els || !els.previewImage) return;
+        els.previewImage.src = dataUrl;
+        els.overlay.hidden = false;
+    }
+
+    function _renderPosterFallback(god, els) {
+        var canvas = document.createElement('canvas');
+        var ctx = canvas.getContext('2d');
+        canvas.width = 860;
+        canvas.height = 1520;
+
+        var grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        grad.addColorStop(0, '#110928');
+        grad.addColorStop(1, '#2b124a');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = '#63efff';
+        ctx.lineWidth = 8;
+        ctx.strokeRect(18, 18, canvas.width - 36, canvas.height - 36);
+        ctx.strokeStyle = '#ff58b3';
+        ctx.strokeRect(34, 34, canvas.width - 68, canvas.height - 68);
+
+        ctx.fillStyle = '#63efff';
+        ctx.font = '28px "PoxiaoPixel"';
+        ctx.fillText('CYBER BLESSING', 64, 94);
+
+        ctx.fillStyle = '#ffea00';
+        ctx.font = '40px "PoxiaoPixel"';
+        ctx.fillText(_getPosterNickname(), 64, 154);
+
+        ctx.fillStyle = 'rgba(255,255,255,0.08)';
+        for (var y = 0; y < canvas.height; y += 34) {
+            ctx.fillRect(0, y, canvas.width, 1);
+        }
+        for (var x = 0; x < canvas.width; x += 34) {
+            ctx.fillRect(x, 0, 1, canvas.height);
+        }
+
+        ctx.fillStyle = 'rgba(17,10,40,0.72)';
+        ctx.fillRect(72, 214, 716, 640);
+        ctx.strokeStyle = '#ffd84c';
+        ctx.lineWidth = 6;
+        ctx.strokeRect(72, 214, 716, 640);
+
+        if (els && els.godImage && els.godImage.complete && els.godImage.naturalWidth) {
+            var img = els.godImage;
+            var drawH = 520;
+            var drawW = drawH * (img.naturalWidth / img.naturalHeight);
+            ctx.drawImage(img, (canvas.width - drawW) / 2, 260, drawW, drawH);
+        }
+
+        ctx.fillStyle = '#63efff';
+        ctx.font = '38px "PoxiaoPixel"';
+        ctx.textAlign = 'center';
+        ctx.fillText(god.name, canvas.width / 2, 906);
+
+        ctx.fillStyle = '#ffea00';
+        ctx.font = '56px "PoxiaoPixel"';
+        ctx.fillText(god.posterBlessing || '福佑：财源滚滚', canvas.width / 2, 1030);
+
+        ctx.fillStyle = '#fff2c1';
+        ctx.font = '30px "PoxiaoPixel"';
+        ctx.fillText('「' + _resultQuote + '」', canvas.width / 2, 1110);
+
+        if (els && els.qrImage && els.qrImage.complete) {
+            ctx.drawImage(els.qrImage, 88, 1220, 180, 180);
+        }
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#ff58b3';
+        ctx.font = '34px "PoxiaoPixel"';
+        ctx.fillText('Vercel 神经祈福链路', 304, 1288);
+        ctx.fillStyle = '#fff2c1';
+        ctx.font = '24px "PoxiaoPixel"';
+        ctx.fillText('长按/扫码接入神经祈福链路', 304, 1350);
+        return canvas;
+    }
+
+    function _generateSharePoster(god) {
+        var els = _fillPosterDom(god);
+        if (!els) return Promise.reject(new Error('poster-dom-missing'));
+
+        return Promise.all([
+            _waitForImage(els.godImage),
+            _waitForImage(els.qrImage),
+            document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()
+        ]).then(function () {
+            if (window.html2canvas) {
+                return window.html2canvas(els.poster, {
+                    backgroundColor: null,
+                    scale: Math.max(2, Math.min(3, window.devicePixelRatio || 2)),
+                    useCORS: true
+                });
+            }
+            return _renderPosterFallback(god, els);
+        }).then(function (canvas) {
+            return canvas.toDataURL('image/png', 1);
+        });
+    }
+
+    function _queuePosterGeneration(god) {
+        if (_posterState !== 'idle' || _resultTimer < 1.2) return;
+        _posterState = 'generating';
+        _generateSharePoster(god).then(function (dataUrl) {
+            _posterGeneratedUrl = dataUrl;
+            _posterState = 'ready';
+            _showPosterOverlay(dataUrl);
+        }).catch(function () {
+            _posterState = 'error';
+            MeritSystem.showToast('海报生成失败，请稍后再试', 'warning');
+            _phase = 'select';
+            _setupSelectButtons();
+        });
+    }
+
     function _renderResult(ctx, w, h, god) {
         var fadeIn = Math.min(1, _resultTimer / 0.5);
+        var flare = Math.min(1, _resultTimer / 1.15);
+        var burnPulse = 0.35 + (Math.sin(_time * 7) + 1) / 2 * 0.45;
+        var panelY = h * 0.1;
+        var panelH = h * 0.68;
 
-        Draw.drawPanel(ctx, w * 0.08, h * 0.12, w * 0.84, h * 0.62, Draw.THEME.panelDark, Draw.THEME.cyan, Draw.THEME.gold, Draw.THEME.ink);
-        
-        var titleW = 240, titleH = 48;
-        UI.drawRoundedRect(ctx, w / 2 - titleW / 2, h * 0.08, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
-        UI.drawTitle(ctx, god.name + ' 赐福', w / 2, h * 0.08 + titleH / 2 + 2, 20, Draw.THEME.gold);
+        Draw.drawPanel(ctx, w * 0.08, panelY, w * 0.84, panelH, Draw.THEME.panelDark, Draw.THEME.cyan, Draw.THEME.gold, Draw.THEME.ink);
 
-        var bobY = Math.sin(_time * 2.5) * 5;
-        Draw.drawHalo(ctx, w / 2, h * 0.3 + bobY, 130, Draw.THEME.gold, 0.3 * fadeIn);
-        god.draw(ctx, w / 2, h * 0.32 + bobY, 1.3);
+        var titleW = 248, titleH = 48;
+        UI.drawRoundedRect(ctx, w / 2 - titleW / 2, h * 0.06, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
+        UI.drawTitle(ctx, god.name + ' 神谕显影', w / 2, h * 0.06 + titleH / 2 + 2, 20, Draw.THEME.gold);
+
+        Draw.drawHalo(ctx, w / 2, h * 0.3, 110 + flare * 48, god.color, 0.14 + flare * 0.2);
+        Draw.drawHalo(ctx, w / 2, h * 0.3, 76 + flare * 22, '#ffd84c', 0.12 + burnPulse * 0.12);
+        god.draw(ctx, w / 2, h * 0.3 + Math.sin(_time * 3.5) * 4, 1.16 + flare * 0.08);
+
+        ctx.save();
+        var baseY = h * 0.72;
+        var stickH = h * 0.16;
+        var positions = [w * 0.42, w * 0.5, w * 0.58];
+        for (var i = 0; i < positions.length; i++) {
+            var px = positions[i];
+            var flame = 10 + flare * 20 + Math.sin(_time * 8 + i) * 4;
+            ctx.fillStyle = 'rgba(255,90,72,' + (0.6 + burnPulse * 0.25) + ')';
+            ctx.fillRect(px - 2, baseY - stickH, 4, stickH);
+            ctx.beginPath();
+            ctx.ellipse(px, baseY - stickH - 10, 8, flame, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,216,76,' + (0.42 + burnPulse * 0.3) + ')';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(px, baseY - stickH - 12, 4, flame * 0.56, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,255,255,' + (0.26 + burnPulse * 0.2) + ')';
+            ctx.fill();
+            ctx.fillStyle = 'rgba(99,239,255,' + (0.1 + burnPulse * 0.12) + ')';
+            ctx.fillRect(px + Math.sin(_time * 4 + i) * 3, baseY - stickH - 24 - flame, 3, 3);
+            ctx.fillRect(px - 6 + Math.cos(_time * 3 + i) * 2, baseY - stickH - 12 - flame * 0.7, 2, 2);
+        }
+        ctx.restore();
 
         ctx.save();
         ctx.globalAlpha = fadeIn;
-
-        ctx.font = '18px "PoxiaoPixel"';
+        ctx.font = '16px "PoxiaoPixel"';
         ctx.textAlign = 'center';
         ctx.lineJoin = 'round';
         ctx.lineWidth = 4;
         ctx.strokeStyle = '#24113f';
-        ctx.strokeText('「' + _resultQuote + '」', w / 2, h * 0.63);
         ctx.fillStyle = '#fff2c1';
-        ctx.fillText('「' + _resultQuote + '」', w / 2, h * 0.63);
+        ctx.strokeText('「' + _resultQuote + '」', w / 2, h * 0.58);
+        ctx.fillText('「' + _resultQuote + '」', w / 2, h * 0.58);
 
-        // 祝福副标题
-        ctx.font = '14px "PoxiaoPixel"';
-        ctx.strokeText('诚心祈福，自有天佑', w / 2, h * 0.69);
-        ctx.fillStyle = '#63efff';
-        ctx.fillText('诚心祈福，自有天佑', w / 2, h * 0.69);
+        ctx.font = '20px "PoxiaoPixel"';
+        ctx.fillStyle = '#ffea00';
+        ctx.strokeText(god.posterBlessing || '福佑：财源滚滚', w / 2, h * 0.64);
+        ctx.fillText(god.posterBlessing || '福佑：财源滚滚', w / 2, h * 0.64);
 
+        ctx.font = '13px "PoxiaoPixel"';
+        if (_posterState === 'idle') {
+            ctx.fillStyle = '#63efff';
+            ctx.strokeText('神火回路点亮中...', w / 2, h * 0.7);
+            ctx.fillText('神火回路点亮中...', w / 2, h * 0.7);
+        } else if (_posterState === 'generating') {
+            ctx.fillStyle = '#63efff';
+            ctx.strokeText('正在生成 Canvas 海报...', w / 2, h * 0.7);
+            ctx.fillText('正在生成 Canvas 海报...', w / 2, h * 0.7);
+        } else if (_posterState === 'ready') {
+            ctx.fillStyle = '#ff58b3';
+            ctx.strokeText('神谕已定，海报已展开', w / 2, h * 0.7);
+            ctx.fillText('神谕已定，海报已展开', w / 2, h * 0.7);
+        } else {
+            ctx.fillStyle = '#ff8a3d';
+            ctx.strokeText('显影失败，请稍后重试', w / 2, h * 0.7);
+            ctx.fillText('显影失败，请稍后重试', w / 2, h * 0.7);
+        }
         ctx.restore();
+
+        _queuePosterGeneration(god);
     }
 
     function destroy() {
         UI.clearButtons();
+        _hidePosterOverlay();
         if (_bowCallback) Device.offBow(_bowCallback);
         _removeFallbackTap();
         _cleanupDesktopFallback();

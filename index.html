@@ -34,11 +34,52 @@
     </div>
     <div id="meritBadge" class="merit-badge">🪙 功德: 0</div>
     <div id="toastHost" class="toast-host" aria-live="polite" aria-atomic="true"></div>
+    <div id="sharePosterHost" class="share-poster-host" aria-hidden="true">
+        <div id="sharePoster" class="share-poster">
+            <div class="share-poster-grid"></div>
+            <div class="share-poster-scanline"></div>
+            <div class="share-poster-header">
+                <div class="share-poster-tag">CYBER BLESSING</div>
+                <div id="posterNickname" class="share-poster-name">赛博信众#2049</div>
+            </div>
+            <div class="share-poster-main">
+                <div class="share-poster-god-wrap">
+                    <div class="share-poster-god-frame">
+                        <img id="posterGodImage" class="share-poster-god" alt="财神图像">
+                    </div>
+                    <div id="posterGodName" class="share-poster-god-name">赵公明·正财神</div>
+                </div>
+                <div class="share-poster-copy">
+                    <div class="share-poster-copy-label">神经福佑回执</div>
+                    <div id="posterBlessing" class="share-poster-blessing">福佑：财源滚滚</div>
+                    <div id="posterQuote" class="share-poster-quote">「五路财神到，金银满堂招」</div>
+                </div>
+            </div>
+            <div class="share-poster-footer">
+                <img id="posterQrImage" class="share-poster-qr" alt="Vercel 网站二维码占位">
+                <div class="share-poster-entry">
+                    <div class="share-poster-entry-title">Vercel 神经祈福链路</div>
+                    <div class="share-poster-entry-sub">长按/扫码接入神经祈福链路</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="posterOverlay" class="poster-overlay" hidden>
+        <div class="poster-overlay-inner">
+            <img id="posterPreviewImage" class="poster-preview-image" alt="祈福海报">
+            <div class="poster-overlay-tip">神谕已定，长按图片保存并将好运分享给朋友</div>
+            <div class="poster-overlay-actions">
+                <button id="posterReplayButton" class="poster-overlay-btn" type="button">再拜一次</button>
+                <button id="posterHomeButton" class="poster-overlay-btn poster-overlay-btn-secondary" type="button">返回首页</button>
+            </div>
+        </div>
+    </div>
     <div id="errorOverlay" style="display:none;">
         <div id="errorMessage">哎呀，出错了，请重启试试吧~</div>
     </div>
 
     <!-- 加载顺序：引擎 → 设备 → 音频 → UI → 绘制 → 场景 → 主程序 -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="./js/engine.js"></script>
     <script src="./js/device.js"></script>
     <script src="./js/audio.js"></script>
@@ -46,8 +87,8 @@
     <script src="./js/merit.js"></script>
     <script src="./js/draw.js"></script>
     <script src="./js/scenes/home.js"></script>
-    <script src="./js/scenes/worship.js?v=20260426"></script>
-    <script src="./js/scenes/woodenfish.js"></script>
+    <script src="./js/scenes/worship.js?v=20260426b"></script>
+    <script src="./js/scenes/woodenfish.js?v=20260426"></script>
     <script src="./js/scenes/moonblocks.js"></script>
     <script src="./js/scenes/stickman.js"></script>
     <script src="./js/main.js"></script>

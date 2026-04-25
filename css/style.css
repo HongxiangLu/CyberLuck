@@ -377,6 +377,250 @@ html, body {
     font-family: "PoxiaoPixel";
 }
 
+.share-poster-host {
+    position: fixed;
+    left: -9999px;
+    top: 0;
+    width: 430px;
+    pointer-events: none;
+    opacity: 0;
+}
+
+.share-poster {
+    position: relative;
+    width: 430px;
+    min-height: 760px;
+    padding: 28px 28px 30px;
+    color: #fff2c1;
+    background:
+        radial-gradient(circle at 18% 16%, rgba(255, 88, 179, 0.35), rgba(255, 88, 179, 0) 28%),
+        radial-gradient(circle at 82% 18%, rgba(99, 239, 255, 0.28), rgba(99, 239, 255, 0) 30%),
+        linear-gradient(180deg, rgba(17, 9, 40, 0.98), rgba(35, 18, 74, 0.99));
+    border: 4px solid #63efff;
+    outline: 4px solid #ff58b3;
+    outline-offset: -10px;
+    overflow: hidden;
+    box-shadow: 0 0 0 4px rgba(21, 10, 38, 0.7) inset;
+}
+
+.share-poster-grid,
+.share-poster-scanline {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.share-poster-grid {
+    background-image:
+        linear-gradient(rgba(99, 239, 255, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99, 239, 255, 0.1) 1px, transparent 1px);
+    background-size: 22px 22px;
+    opacity: 0.4;
+}
+
+.share-poster-scanline {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 16%);
+    mix-blend-mode: screen;
+}
+
+.share-poster-header,
+.share-poster-main,
+.share-poster-footer {
+    position: relative;
+    z-index: 1;
+}
+
+.share-poster-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    gap: 16px;
+}
+
+.share-poster-tag {
+    padding: 8px 12px;
+    color: #130c2b;
+    background: #63efff;
+    font-size: 14px;
+    letter-spacing: 1px;
+}
+
+.share-poster-name {
+    max-width: 220px;
+    color: #ffea00;
+    font-size: 22px;
+    text-align: right;
+    text-shadow: 0 0 10px rgba(255, 234, 0, 0.5);
+}
+
+.share-poster-main {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.share-poster-god-wrap,
+.share-poster-copy,
+.share-poster-footer {
+    background: rgba(17, 10, 40, 0.56);
+    border: 3px solid rgba(99, 239, 255, 0.86);
+    box-shadow: 0 0 0 3px rgba(255, 88, 179, 0.28) inset;
+}
+
+.share-poster-god-wrap {
+    padding: 18px;
+}
+
+.share-poster-god-frame {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 330px;
+    background:
+        radial-gradient(circle, rgba(255, 216, 76, 0.2), rgba(255, 216, 76, 0) 62%),
+        linear-gradient(180deg, rgba(255, 88, 179, 0.18), rgba(99, 239, 255, 0.1));
+    border: 3px solid rgba(255, 216, 76, 0.8);
+}
+
+.share-poster-god {
+    max-width: 100%;
+    max-height: 300px;
+    display: block;
+    image-rendering: pixelated;
+    filter:
+        drop-shadow(0 0 8px rgba(99, 239, 255, 0.55))
+        drop-shadow(0 0 18px rgba(255, 88, 179, 0.35));
+}
+
+.share-poster-god-name {
+    margin-top: 14px;
+    color: #63efff;
+    font-size: 22px;
+    text-align: center;
+}
+
+.share-poster-copy {
+    padding: 20px 18px;
+}
+
+.share-poster-copy-label {
+    color: #63efff;
+    font-size: 15px;
+    margin-bottom: 12px;
+}
+
+.share-poster-blessing {
+    color: #ffea00;
+    font-size: 34px;
+    line-height: 1.25;
+    text-shadow:
+        0 0 8px rgba(255, 234, 0, 0.5),
+        0 0 18px rgba(255, 88, 179, 0.3);
+}
+
+.share-poster-quote {
+    margin-top: 14px;
+    color: #fff2c1;
+    font-size: 18px;
+    line-height: 1.6;
+}
+
+.share-poster-footer {
+    margin-top: 24px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.share-poster-qr {
+    width: 98px;
+    height: 98px;
+    flex: 0 0 98px;
+    image-rendering: pixelated;
+    background: #fff;
+    border: 3px solid #ffea00;
+}
+
+.share-poster-entry-title {
+    color: #ff58b3;
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+
+.share-poster-entry-sub {
+    color: #fff2c1;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.poster-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9997;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 22px;
+    background:
+        radial-gradient(circle at 50% 22%, rgba(99, 239, 255, 0.18), rgba(99, 239, 255, 0) 30%),
+        rgba(8, 6, 20, 0.92);
+    backdrop-filter: blur(6px);
+}
+
+.poster-overlay[hidden] {
+    display: none;
+}
+
+.poster-overlay-inner {
+    width: min(100%, 460px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+}
+
+.poster-preview-image {
+    width: 100%;
+    max-height: 76vh;
+    object-fit: contain;
+    image-rendering: pixelated;
+    border: 3px solid #63efff;
+    outline: 3px solid #ff58b3;
+    outline-offset: -9px;
+    box-shadow: 0 0 26px rgba(99, 239, 255, 0.24);
+}
+
+.poster-overlay-tip {
+    color: #ffea00;
+    font-size: 15px;
+    text-align: center;
+    line-height: 1.6;
+    text-shadow: 0 0 10px rgba(255, 234, 0, 0.35);
+}
+
+.poster-overlay-actions {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+}
+
+.poster-overlay-btn {
+    flex: 1;
+    padding: 12px 10px;
+    border: 3px solid #ffd84c;
+    background: rgba(255, 216, 76, 0.14);
+    color: #fff2c1;
+    font: inherit;
+    cursor: pointer;
+}
+
+.poster-overlay-btn-secondary {
+    border-color: #63efff;
+    background: rgba(99, 239, 255, 0.12);
+}
+
 /* 安全区域适配 (iPhone X+) */
 @supports (padding: env(safe-area-inset-top)) {
     body {
