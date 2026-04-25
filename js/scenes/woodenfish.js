@@ -7,6 +7,7 @@ var WoodenFishScene = (function () {
     var _merit = 0;
     var _hitAnim = 0;
     var _malletAngle = 0;
+    var _malletSwingV = 0;
     var _time = 0;
     var _petLevel = 0;
     var _currentFish = 0;
@@ -66,6 +67,7 @@ var WoodenFishScene = (function () {
         UI.clearButtons();
         _hitAnim = 0;
         _malletAngle = 0;
+        _malletSwingV = 0;
         _time = 0;
         _effects = [];
         _merit = MeritSystem.getPoints();
@@ -194,7 +196,8 @@ var WoodenFishScene = (function () {
         var nextMerit = _merit + 1;
         MeritSystem.addPoints(1);
         _hitAnim = 1;
-        _malletAngle = -0.58;
+        _malletAngle = -0.68;
+        _malletSwingV = 0.018;
 
         var W = Engine.width();
         var H = Engine.height();
@@ -401,8 +404,18 @@ var WoodenFishScene = (function () {
         _time += 0.016;
         if (_hitAnim > 0) _hitAnim *= 0.88;
         if (_hitAnim < 0.01) _hitAnim = 0;
-        if (_malletAngle < 0) _malletAngle += 0.075;
-        if (_malletAngle > 0) _malletAngle = 0;
+        if (_malletAngle < 0 || _malletSwingV !== 0) {
+            _malletAngle += _malletSwingV;
+            _malletSwingV += 0.0042; // 放慢回弹，加一点重力感
+            if (_malletAngle >= 0) {
+                _malletAngle = _malletAngle * -0.22; // 轻微回摆，敲击更生动
+                _malletSwingV = _malletSwingV * -0.34;
+                if (Math.abs(_malletAngle) < 0.01 && Math.abs(_malletSwingV) < 0.01) {
+                    _malletAngle = 0;
+                    _malletSwingV = 0;
+                }
+            }
+        }
 
         Draw.drawBackground(ctx, w, h);
         Draw.drawFrame(ctx, w, h);
@@ -455,20 +468,20 @@ var WoodenFishScene = (function () {
         }
 
         var tipAlpha = 0.34 + Math.sin(_time * 3) * 0.14;
-        UI.drawSubtitle(ctx, '点击木鱼本体敲击 · 右上角可切换形态', w / 2, h * 0.73, 14, 'rgba(255,242,193,' + tipAlpha + ')');
+        UI.drawSubtitle(ctx, '点击木鱼本体敲击 · 左右箭头切换形态', w / 2, h * 0.73, 14, 'rgba(255,242,193,' + tipAlpha + ')');
         UI.drawSubtitle(ctx, fish.hint, w / 2, h * 0.77, 12, fish.accent);
         UI.drawButtons(ctx);
     }
 
     function _drawFish(ctx, w, h, fish) {
         var bounceScale = 1 - _hitAnim * 0.12;
-        var baseScale = 1.12 + _petLevel * 0.04;
+        var baseScale = 1.04 + _petLevel * 0.035;
         var cx = w / 2;
         var cy = h * 0.49 + Math.sin(_time * 2.3) * 3;
 
         if (fish.imageKey && _assets[fish.imageKey]) {
             var img = _assets[fish.imageKey];
-            var drawH = 180 * baseScale * bounceScale * fish.imgScale;
+            var drawH = 162 * baseScale * bounceScale * fish.imgScale;
             var drawW = drawH * (img.naturalWidth / img.naturalHeight);
             ctx.save();
             ctx.translate(cx, cy);
@@ -476,16 +489,16 @@ var WoodenFishScene = (function () {
             ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
             ctx.restore();
         } else {
-            Draw.drawWoodenFish(ctx, cx, cy, baseScale * bounceScale, _hitAnim > 0.08);
+            Draw.drawWoodenFish(ctx, cx, cy, baseScale * bounceScale * 0.93, _hitAnim > 0.08);
         }
     }
 
     function _drawMallet(ctx, w, h) {
-        var x = w / 2 + 88;
-        var y = h * 0.39;
+        var x = w / 2 + 80;
+        var y = h * 0.4;
         if (_assets.striker) {
             var img = _assets.striker;
-            var drawH = 150;
+            var drawH = 132;
             var drawW = drawH * (img.naturalWidth / img.naturalHeight);
             ctx.save();
             ctx.translate(x, y);
@@ -494,7 +507,7 @@ var WoodenFishScene = (function () {
             ctx.restore();
             return;
         }
-        Draw.drawMallet(ctx, x, y, 0.95, _malletAngle);
+        Draw.drawMallet(ctx, x, y, 0.84, _malletAngle);
     }
 
     function _drawAmbientParticles(ctx, w, h, fish, level) {
