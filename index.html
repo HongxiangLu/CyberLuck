@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <title>福运三宝 · 互动祈福</title>
+    <meta name="description" content="拜财神、敲木鱼、掷杯筊 — 三合一互动祈福体验">
+    <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+    <canvas id="mainCanvas"></canvas>
+    <div id="errorOverlay" style="display:none;">
+        <div id="errorMessage">哎呀，出错了，请重启试试吧~</div>
+    </div>
+
+    <!-- 加载顺序：引擎 → 设备 → 音频 → UI → 绘制 → 场景 → 主程序 -->
+    <script src="./js/engine.js"></script>
+    <script src="./js/device.js"></script>
+    <script src="./js/audio.js"></script>
+    <script src="./js/ui.js"></script>
+    <script src="./js/draw.js"></script>
+    <script src="./js/scenes/home.js"></script>
+    <script src="./js/scenes/worship.js"></script>
+    <script src="./js/scenes/woodenfish.js"></script>
+    <script src="./js/scenes/moonblocks.js"></script>
+    <script src="./js/main.js"></script>
+</body>
+</html>
