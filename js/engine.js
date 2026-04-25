@@ -72,29 +72,81 @@ var Engine = (function () {
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
                 r: opts.radius || (2 + Math.random() * 3),
+                size: opts.size || null,
                 color: color,
                 alpha: 1,
                 decay: opts.decay || (0.015 + Math.random() * 0.01),
-                gravity: opts.gravity || 0
+                gravity: opts.gravity || 0,
+                shape: opts.shape || 'circle'
             });
         }
     }
 
     /** 金光爆发特效 */
-    function addGoldBurst(x, y) {
+    function addGoldBurst(x, y, opts) {
+        opts = opts || {};
         var golds = ['#FFD700', '#FFA500', '#FFEC8B', '#FF8C00', '#FFE4B5'];
-        for (var i = 0; i < 30; i++) {
-            var angle = Math.random() * Math.PI * 2;
-            var speed = 2 + Math.random() * 5;
+        var count = opts.count || 30;
+        var spreadX = opts.spreadX || 0;
+        var spreadY = opts.spreadY || 0;
+        var baseSpeed = opts.speed || 5;
+        var upwardLift = opts.upwardLift == null ? 2 : opts.upwardLift;
+        var usePixelShape = opts.pixel !== false;
+        var ringRadius = opts.ringRadius || 0;
+
+        if (opts.flash !== false) {
             particles.push({
-                x: x, y: y,
+                x: x,
+                y: y,
+                vx: 0,
+                vy: 0,
+                r: opts.flashCoreRadius || 10,
+                color: '#FFFDF2',
+                alpha: 0.95,
+                decay: opts.flashDecay || 0.08,
+                gravity: 0,
+                shape: 'flash',
+                grow: opts.flashGrow || 2.8
+            });
+            particles.push({
+                x: x,
+                y: y,
+                vx: 0,
+                vy: 0,
+                r: opts.flashHaloRadius || 18,
+                color: '#FFD700',
+                alpha: 0.45,
+                decay: (opts.flashDecay || 0.08) * 0.7,
+                gravity: 0,
+                shape: 'flash',
+                grow: (opts.flashGrow || 2.8) * 1.15
+            });
+        }
+
+        for (var i = 0; i < count; i++) {
+            var angle = Math.random() * Math.PI * 2;
+            var speed = 2 + Math.random() * baseSpeed;
+            var spawnX = x + (Math.random() - 0.5) * spreadX;
+            var spawnY = y + (Math.random() - 0.5) * spreadY;
+
+            if (ringRadius > 0) {
+                var radiusJitter = ringRadius * (0.82 + Math.random() * 0.3);
+                spawnX = x + Math.cos(angle) * radiusJitter;
+                spawnY = y + Math.sin(angle) * radiusJitter;
+            }
+
+            particles.push({
+                x: spawnX,
+                y: spawnY,
                 vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed - 2,
+                vy: Math.sin(angle) * speed - upwardLift,
                 r: 1.5 + Math.random() * 3,
+                size: usePixelShape ? (3 + Math.floor(Math.random() * 4)) : null,
                 color: golds[Math.floor(Math.random() * golds.length)],
                 alpha: 1,
                 decay: 0.01 + Math.random() * 0.01,
-                gravity: 0.05
+                gravity: 0.05,
+                shape: usePixelShape ? 'pixel' : 'circle'
             });
         }
     }
@@ -106,14 +158,26 @@ var Engine = (function () {
             p.y += p.vy;
             p.vy += p.gravity;
             p.alpha -= p.decay;
+            if (p.grow) p.r += p.grow;
             if (p.alpha <= 0) {
                 particles.splice(i, 1);
                 continue;
             }
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
             ctx.fillStyle = _colorWithAlpha(p.color, p.alpha);
-            ctx.fill();
+            if (p.shape === 'pixel') {
+                var size = p.size || Math.max(2, Math.round(p.r * 2));
+                var px = Math.round(p.x - size / 2);
+                var py = Math.round(p.y - size / 2);
+                ctx.fillRect(px, py, size, size);
+            } else if (p.shape === 'flash') {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
     }
 

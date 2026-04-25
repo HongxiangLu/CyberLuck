@@ -119,6 +119,18 @@ var HomeScene = (function () {
                 Audio.init();
                 Audio.playSuccess();
                 Device.tapVibrate();
+                Engine.addGoldBurst(cx, cy, {
+                    count: 30,
+                    speed: 3.4,
+                    ringRadius: Math.min(imgW, imgH) * 0.42,
+                    upwardLift: 0.45,
+                    flash: true,
+                    flashCoreRadius: 12,
+                    flashHaloRadius: 24,
+                    flashGrow: 2.2,
+                    flashDecay: 0.07,
+                    pixel: true
+                });
                 if (!_starterClaimed) {
                     var rewards = [22, 33, 66];
                     var reward = rewards[Math.floor(Math.random() * rewards.length)];
@@ -126,7 +138,6 @@ var HomeScene = (function () {
                     _writeStarterClaimed();
                     MeritSystem.addPoints(reward);
                     MeritSystem.showToast('初始功德到账 +' + reward, 'success');
-                    Engine.addGoldBurst(x, y - 10);
                     Engine.addFloatingText(x + (Math.random() - 0.5) * 40, y - 20, '+' + reward, '#FFD700', 24);
                 } else {
                     MeritSystem.showToast('初始功德已经领过啦，去敲木鱼继续积攒吧', 'info');
