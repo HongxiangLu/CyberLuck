@@ -102,6 +102,8 @@ var WoodenFishScene = (function () {
 
     function _setupButtons() {
         UI.clearButtons();
+        var W = Engine.width();
+        var H = Engine.height();
         UI.createButton({
             x: 15, y: 15, w: 78, h: 40,
             text: '返回',
@@ -112,21 +114,37 @@ var WoodenFishScene = (function () {
             onClick: function () { App.switchScene('home'); }
         });
         UI.createButton({
-            x: Math.max(15, Engine.width() - 112),
-            y: 15,
-            w: 96,
-            h: 40,
-            text: '切换木鱼',
+            x: Math.max(10, W * 0.06),
+            y: H * 0.48 - 26,
+            w: 44,
+            h: 52,
+            text: '<',
             color: '#63efff',
             bgColor: 'rgba(99,239,255,0.12)',
             borderColor: 'rgba(99,239,255,0.42)',
-            fontSize: 12,
-            radius: 18,
+            fontSize: 22,
+            radius: 10,
+            onClick: function () {
+                Audio.playTap();
+                _currentFish = (_currentFish - 1 + _fishTypes.length) % _fishTypes.length;
+                Device.tapVibrate();
+            }
+        });
+        UI.createButton({
+            x: Math.min(W - 54, W * 0.94 - 44),
+            y: H * 0.48 - 26,
+            w: 44,
+            h: 52,
+            text: '>',
+            color: '#63efff',
+            bgColor: 'rgba(99,239,255,0.12)',
+            borderColor: 'rgba(99,239,255,0.42)',
+            fontSize: 22,
+            radius: 10,
             onClick: function () {
                 Audio.playTap();
                 _currentFish = (_currentFish + 1) % _fishTypes.length;
                 Device.tapVibrate();
-                MeritSystem.showToast('已切换为 ' + _fishTypes[_currentFish].name, 'success');
             }
         });
     }
