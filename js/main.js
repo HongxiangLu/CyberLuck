@@ -35,7 +35,8 @@ var App = (function () {
             home: HomeScene,
             worship: WorshipScene,
             woodenfish: WoodenFishScene,
-            moonblocks: MoonBlocksScene
+            moonblocks: MoonBlocksScene,
+            stickman: StickmanScene
         };
     }
 

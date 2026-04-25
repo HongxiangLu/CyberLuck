@@ -27,15 +27,16 @@ var HomeScene = (function () {
         var W = Engine.width();
         var H = Engine.height();
         var btnW = Math.min(W * 0.75, 280);
-        var btnH = 70;
-        var gap = 20;
-        var startY = H * 0.42;
+        var btnH = 60;
+        var gap = 15;
+        var startY = H * 0.38;
         var bx = (W - btnW) / 2;
 
         var scenes = [
             { text: '🙏 拜财神', icon: null, scene: 'worship', color: '#FFD700', bg: 'rgba(255,215,0,0.1)', border: 'rgba(255,215,0,0.35)' },
             { text: '🐟 木鱼灵宠', icon: null, scene: 'woodenfish', color: '#DEB887', bg: 'rgba(222,184,135,0.1)', border: 'rgba(222,184,135,0.35)' },
-            { text: '🌙 掷杯筊', icon: null, scene: 'moonblocks', color: '#CD853F', bg: 'rgba(205,133,63,0.1)', border: 'rgba(205,133,63,0.35)' }
+            { text: '🌙 掷杯筊', icon: null, scene: 'moonblocks', color: '#CD853F', bg: 'rgba(205,133,63,0.1)', border: 'rgba(205,133,63,0.35)' },
+            { text: '🏃‍♂️ 拜年小人', icon: null, scene: 'stickman', color: '#FA8072', bg: 'rgba(250,128,114,0.1)', border: 'rgba(250,128,114,0.35)' }
         ];
 
         for (var j = 0; j < scenes.length; j++) {
