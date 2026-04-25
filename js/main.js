@@ -18,6 +18,26 @@ var App = (function () {
         });
     }
 
+    function _setupIntroOverlay() {
+        var overlay = document.getElementById('introOverlay');
+        var isDone = false;
+        if (!overlay) return;
+
+        function finishIntro() {
+            if (isDone) return;
+            isDone = true;
+            overlay.classList.add('is-done');
+        }
+
+        overlay.addEventListener('animationend', function (e) {
+            if (e.target === overlay) {
+                finishIntro();
+            }
+        });
+
+        window.setTimeout(finishIntro, 3700);
+    }
+
     function _showError(text) {
         try {
             var overlay = document.getElementById('errorOverlay');
@@ -61,6 +81,7 @@ var App = (function () {
     function start() {
         try {
             _setupErrorHandler();
+            _setupIntroOverlay();
             Engine.init();
             MeritSystem.init();
             UI.bindTouch(Engine.getCanvas());

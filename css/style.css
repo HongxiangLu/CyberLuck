@@ -41,6 +41,246 @@ html, body {
     background: #54e3d9;
 }
 
+.intro-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    overflow: hidden;
+    pointer-events: auto;
+    background:
+        radial-gradient(circle at 50% 42%, rgba(152, 0, 43, 0.34) 0%, rgba(78, 0, 26, 0.22) 26%, rgba(12, 0, 8, 0.94) 72%),
+        linear-gradient(180deg, rgba(4, 10, 18, 0.9), rgba(8, 0, 3, 0.98));
+    transform-origin: center center;
+    animation: intro-overlay-exit 0.9s cubic-bezier(0.76, 0, 0.24, 1) 2.5s forwards;
+}
+
+.intro-shake-layer {
+    position: absolute;
+    inset: 0;
+    animation: intro-screen-shake 0.2s steps(2, end) 1.2s 1;
+}
+
+.intro-vignette {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 50% 58%, rgba(255, 215, 0, 0.05) 0%, rgba(255, 215, 0, 0) 24%),
+        radial-gradient(circle at 50% 52%, rgba(0, 255, 255, 0.08) 0%, rgba(0, 255, 255, 0) 30%);
+    mix-blend-mode: screen;
+    opacity: 0.85;
+}
+
+.intro-incense {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, 14vh);
+    color: #0ff;
+    font-size: clamp(24px, 5.2vw, 44px);
+    line-height: 1.2;
+    letter-spacing: 0.28em;
+    white-space: nowrap;
+    text-shadow:
+        0 0 8px rgba(0, 255, 255, 0.95),
+        0 0 18px rgba(0, 255, 255, 0.65),
+        0 0 36px rgba(0, 255, 255, 0.35);
+    opacity: 0;
+    animation: intro-incense-rise 1.2s cubic-bezier(0.22, 0.68, 0.18, 1) forwards;
+}
+
+.intro-stamp-wrap {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: min(52vw, 280px);
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+}
+
+.intro-shockwave {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 22%;
+    aspect-ratio: 1;
+    border: 4px solid rgba(255, 215, 0, 0.95);
+    border-radius: 50%;
+    box-shadow:
+        0 0 10px rgba(255, 215, 0, 0.95),
+        0 0 28px rgba(255, 215, 0, 0.55);
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.18);
+    animation: intro-shockwave-ring 0.55s ease-out 1.3s forwards;
+}
+
+.intro-stamp {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    place-items: center;
+    padding: 14%;
+    color: #ffeaa0;
+    background:
+        linear-gradient(180deg, rgba(255, 58, 170, 0.78), rgba(116, 0, 56, 0.9)),
+        radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 42%);
+    border: 8px solid #ffd700;
+    outline: 3px solid rgba(255, 244, 176, 0.95);
+    outline-offset: -10px;
+    box-shadow:
+        0 0 0 2px rgba(60, 0, 23, 0.92) inset,
+        0 0 18px rgba(255, 215, 0, 0.9),
+        0 0 42px rgba(255, 0, 170, 0.42),
+        0 26px 34px rgba(0, 0, 0, 0.42);
+    opacity: 0;
+    transform: translateY(-62vh) scale(3) rotate(-12deg);
+    animation: intro-stamp-slam 0.92s cubic-bezier(0.18, 1.18, 0.34, 1) 1.2s forwards;
+}
+
+.intro-stamp::before {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border: 2px solid rgba(255, 247, 201, 0.82);
+    pointer-events: none;
+}
+
+.intro-stamp::after {
+    content: "";
+    position: absolute;
+    inset: -16%;
+    background: radial-gradient(circle, rgba(255, 215, 0, 0.2) 0%, rgba(255, 215, 0, 0) 68%);
+    filter: blur(10px);
+    z-index: -1;
+}
+
+.intro-stamp span {
+    font-size: clamp(42px, 10vw, 78px);
+    line-height: 1;
+    text-shadow:
+        0 0 6px rgba(255, 245, 185, 0.9),
+        0 0 18px rgba(255, 215, 0, 0.72),
+        3px 3px 0 rgba(82, 0, 31, 0.95);
+}
+
+.intro-overlay.is-done {
+    display: none;
+    pointer-events: none;
+}
+
+@keyframes intro-incense-rise {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, 26vh) translateX(-8px);
+        filter: blur(8px);
+    }
+    18% {
+        opacity: 0.42;
+        transform: translate(-50%, 18vh) translateX(4px);
+        filter: blur(3px);
+    }
+    45% {
+        opacity: 0.82;
+        transform: translate(-50%, 8vh) translateX(-4px);
+        filter: blur(1px);
+    }
+    72% {
+        opacity: 1;
+        transform: translate(-50%, -2vh) translateX(3px);
+        filter: blur(0);
+    }
+    100% {
+        opacity: 0.94;
+        transform: translate(-50%, -8vh) translateX(0);
+        filter: blur(0);
+    }
+}
+
+@keyframes intro-stamp-slam {
+    0% {
+        opacity: 0;
+        transform: translateY(-62vh) scale(3) rotate(-12deg);
+    }
+    52% {
+        opacity: 1;
+        transform: translateY(0) scale(0.9) rotate(0deg);
+    }
+    68% {
+        opacity: 1;
+        transform: translateY(-3.5vh) scale(1.08) rotate(1deg);
+    }
+    82% {
+        opacity: 1;
+        transform: translateY(0.8vh) scale(0.97) rotate(-0.5deg);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1) rotate(0deg);
+    }
+}
+
+@keyframes intro-screen-shake {
+    0% {
+        transform: translate(0, 0);
+    }
+    12% {
+        transform: translate(5px, -4px);
+    }
+    24% {
+        transform: translate(-6px, 5px);
+    }
+    36% {
+        transform: translate(4px, 3px);
+    }
+    48% {
+        transform: translate(-5px, -4px);
+    }
+    60% {
+        transform: translate(3px, 5px);
+    }
+    72% {
+        transform: translate(-4px, 2px);
+    }
+    84% {
+        transform: translate(2px, -3px);
+    }
+    100% {
+        transform: translate(0, 0);
+    }
+}
+
+@keyframes intro-shockwave-ring {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.18);
+    }
+    18% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(5.4);
+    }
+}
+
+@keyframes intro-overlay-exit {
+    0% {
+        opacity: 1;
+        transform: scaleY(1);
+        filter: brightness(1);
+    }
+    68% {
+        opacity: 1;
+        transform: scaleY(0.08);
+        filter: brightness(1.45);
+    }
+    100% {
+        opacity: 0;
+        transform: scaleY(0.015);
+        filter: brightness(2);
+    }
+}
+
 #meritBadge {
     position: fixed;
     top: max(14px, env(safe-area-inset-top));
