@@ -52,7 +52,7 @@ var App = (function () {
                 _currentScene.init();
             }
         } catch (e) {
-            _showError('哎呀，切换场景出错了，请重启试试吧~');
+            _showError('哎呀，切换场景出错了，请重启试试吧~\n' + (e.stack || e.message));
         }
     }
 
