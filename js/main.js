@@ -6,6 +6,7 @@ var App = (function () {
 
     var _currentScene = null;
     var _scenes = {};
+    var _MOBILE_RE = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i;
 
     /** 全局错误处理 */
     function _setupErrorHandler() {
@@ -49,6 +50,15 @@ var App = (function () {
         } catch (e) { /* 实在没辙了 */ }
     }
 
+    function _ensureDeviceFallbacks() {
+        if (!window.Device) return;
+        if (typeof Device.isMobile !== 'function') {
+            Device.isMobile = function () {
+                return _MOBILE_RE.test(navigator.userAgent);
+            };
+        }
+    }
+
     /** 注册场景 */
     function _registerScenes() {
         _scenes = {
@@ -63,6 +73,7 @@ var App = (function () {
     /** 切换场景 */
     function switchScene(name) {
         try {
+            _ensureDeviceFallbacks();
             if (_currentScene && _currentScene.destroy) {
                 _currentScene.destroy();
             }
@@ -82,6 +93,7 @@ var App = (function () {
         try {
             _setupErrorHandler();
             _setupIntroOverlay();
+            _ensureDeviceFallbacks();
             Engine.init();
             MeritSystem.init();
             UI.bindTouch(Engine.getCanvas());
