@@ -9,14 +9,18 @@ var WorshipScene = (function () {
     var _bowCount = 0;
     var _maxBows = 3;
     var _touching = false;
+    var _leftThumbDown = false;
+    var _rightThumbDown = false;
     var _time = 0;
     var _resultTimer = 0;
     var _bowCallback = null;
     var _resultQuote = '';
     var _fallbackTapHandler = null;
     var _touchStartHandler = null;
+    var _touchMoveHandler = null;
     var _touchEndHandler = null;
     var _motionRequested = false;
+    var _incenseGlow = 0;
 
     var gods = [
         {
@@ -165,7 +169,7 @@ var WorshipScene = (function () {
             var btnW = Math.min(W * 0.7, 260);
             UI.createButton({
                 x: (W - btnW) / 2,
-                y: Engine.height() * 0.75,
+                y: Engine.height() * 0.5,
                 w: btnW, h: 52,
                 text: '📱 开启体感权限',
                 color: '#FFD700',
@@ -184,23 +188,66 @@ var WorshipScene = (function () {
         }
     }
 
+    function _getThumbZones() {
+        var W = Engine.width();
+        var H = Engine.height();
+        var zoneR = 50;
+        var zoneY = H * 0.88;
+        return {
+            left:  { x: W * 0.22, y: zoneY, r: zoneR },
+            right: { x: W * 0.78, y: zoneY, r: zoneR }
+        };
+    }
+
+    function _checkTouchZones(touches) {
+        var zones = _getThumbZones();
+        var lHit = false, rHit = false;
+        for (var i = 0; i < touches.length; i++) {
+            var t = touches[i];
+            var rect = Engine.getCanvas().getBoundingClientRect();
+            var tx = t.clientX - rect.left;
+            var ty = t.clientY - rect.top;
+            var dlx = tx - zones.left.x, dly = ty - zones.left.y;
+            var drx = tx - zones.right.x, dry = ty - zones.right.y;
+            if (Math.sqrt(dlx*dlx + dly*dly) < zones.left.r + 20) lHit = true;
+            if (Math.sqrt(drx*drx + dry*dry) < zones.right.r + 20) rHit = true;
+        }
+        _leftThumbDown = lHit;
+        _rightThumbDown = rHit;
+        _touching = lHit && rHit;
+    }
+
     function _bindTouchEvents() {
         var canvas = Engine.getCanvas();
 
         _touchStartHandler = function (e) {
-            _touching = true;
-            if (_phase === 'prepare' && (Device.isMotionGranted() || !Device.isMotionSupported())) {
-                _startBowing();
+            if (_phase === 'prepare' || _phase === 'bowing') {
+                if (e.touches) {
+                    _checkTouchZones(e.touches);
+                } else {
+                    // 桌面鼠标模拟：视为双拇指同时按下
+                    _leftThumbDown = true; _rightThumbDown = true; _touching = true;
+                }
+                if (_phase === 'prepare' && _touching && (Device.isMotionGranted() || !Device.isMotionSupported())) {
+                    _startBowing();
+                }
+            }
+        };
+        _touchMoveHandler = function (e) {
+            if ((_phase === 'prepare' || _phase === 'bowing') && e.touches) {
+                _checkTouchZones(e.touches);
             }
         };
         _touchEndHandler = function (e) {
-            _touching = false;
-            if (_phase === 'bowing') {
-                // 松手暂停 — 提示继续按住
+            if (e.touches && e.touches.length > 0) {
+                _checkTouchZones(e.touches);
+            } else {
+                _leftThumbDown = false; _rightThumbDown = false; _touching = false;
             }
         };
 
         canvas.addEventListener('touchstart', _touchStartHandler, { passive: true });
+        canvas.addEventListener('touchmove', _touchMoveHandler, { passive: true });
         canvas.addEventListener('touchend', _touchEndHandler, { passive: true });
         canvas.addEventListener('mousedown', _touchStartHandler);
         canvas.addEventListener('mouseup', _touchEndHandler);
@@ -345,63 +392,170 @@ var WorshipScene = (function () {
         UI.drawSubtitle(ctx, god.name, w / 2, h * 0.55, 20, '#FFD700');
     }
 
+    /** 绘制三根香 */
+    function _drawIncense(ctx, w, h) {
+        var baseY = h * 0.82;
+        var stickH = h * 0.18;
+        var positions = [w * 0.42, w * 0.5, w * 0.58];
+        _incenseGlow += 0.03;
+
+        for (var i = 0; i < positions.length; i++) {
+            var px = positions[i];
+            // 火焰
+            var flicker = Math.sin(_incenseGlow * 4 + i * 1.5) * 2;
+            ctx.save();
+            ctx.beginPath();
+            ctx.ellipse(px, baseY - stickH - 4 + flicker, 4, 8, 0, 0, Math.PI * 2);
+            var fg = ctx.createRadialGradient(px, baseY - stickH - 4 + flicker, 0, px, baseY - stickH - 4 + flicker, 8);
+            fg.addColorStop(0, 'rgba(255,200,50,0.95)');
+            fg.addColorStop(0.5, 'rgba(255,100,20,0.6)');
+            fg.addColorStop(1, 'rgba(255,50,0,0)');
+            ctx.fillStyle = fg;
+            ctx.fill();
+            ctx.restore();
+
+            // 香棍主体
+            ctx.beginPath();
+            ctx.moveTo(px - 1.5, baseY - stickH);
+            ctx.lineTo(px + 1.5, baseY - stickH);
+            ctx.lineTo(px + 1, baseY);
+            ctx.lineTo(px - 1, baseY);
+            ctx.closePath();
+            var sg = ctx.createLinearGradient(px, baseY - stickH, px, baseY);
+            sg.addColorStop(0, '#8B0000');
+            sg.addColorStop(0.3, '#CD3333');
+            sg.addColorStop(1, '#8B4513');
+            ctx.fillStyle = sg;
+            ctx.fill();
+
+            // 烟雾
+            var smokeA = 0.12 + Math.sin(_incenseGlow * 2 + i) * 0.06;
+            ctx.beginPath();
+            ctx.ellipse(px + Math.sin(_incenseGlow + i) * 3, baseY - stickH - 18 + flicker, 6, 12, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(200,200,200,' + smokeA + ')';
+            ctx.fill();
+        }
+
+        // 香炉底座
+        ctx.beginPath();
+        ctx.ellipse(w / 2, baseY + 4, 35, 8, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#8B7355';
+        ctx.fill();
+        ctx.strokeStyle = '#DAA520';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    }
+
+    /** 绘制拇指按压区 */
+    function _drawThumbZones(ctx, w, h) {
+        var zones = _getThumbZones();
+        var arr = [
+            { z: zones.left,  down: _leftThumbDown,  label: '左手拇指' },
+            { z: zones.right, down: _rightThumbDown, label: '右手拇指' }
+        ];
+        for (var i = 0; i < arr.length; i++) {
+            var item = arr[i];
+            var pulse = Math.sin(_time * 5) * 0.1;
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(item.z.x, item.z.y, item.z.r, 0, Math.PI * 2);
+            if (item.down) {
+                ctx.fillStyle = 'rgba(255,215,0,0.25)';
+                ctx.strokeStyle = 'rgba(255,215,0,0.8)';
+            } else {
+                ctx.fillStyle = 'rgba(255,255,255,' + (0.06 + pulse) + ')';
+                ctx.strokeStyle = 'rgba(255,255,255,' + (0.25 + pulse) + ')';
+            }
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 标签
+            ctx.font = '12px -apple-system, "PingFang SC", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = item.down ? 'rgba(255,215,0,0.9)' : 'rgba(255,255,255,0.45)';
+            ctx.fillText(item.label, item.z.x, item.z.y + item.z.r + 16);
+
+            // 按下时的指纹图标
+            if (!item.down) {
+                ctx.font = '22px -apple-system, sans-serif';
+                ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                ctx.fillText('👆', item.z.x, item.z.y + 7);
+            } else {
+                ctx.font = '22px -apple-system, sans-serif';
+                ctx.fillStyle = 'rgba(255,215,0,0.8)';
+                ctx.fillText('✅', item.z.x, item.z.y + 7);
+            }
+            ctx.restore();
+        }
+    }
+
     function _renderPrepare(ctx, w, h, god) {
-        Draw.drawHalo(ctx, w / 2, h * 0.33, 80, god.color, 0.15 + Math.sin(_time * 3) * 0.05);
-        god.draw(ctx, w / 2, h * 0.35, 1.0);
+        Draw.drawHalo(ctx, w / 2, h * 0.28, 80, god.color, 0.15 + Math.sin(_time * 3) * 0.05);
+        god.draw(ctx, w / 2, h * 0.3, 1.0);
         UI.drawTitle(ctx, god.name, w / 2, h * 0.08, 24, '#FFD700');
+
+        _drawIncense(ctx, w, h);
+        _drawThumbZones(ctx, w, h);
 
         // 提示
         var alpha = 0.5 + Math.sin(_time * 4) * 0.3;
         ctx.save();
-        ctx.font = '16px -apple-system, "PingFang SC", sans-serif';
+        ctx.font = '15px -apple-system, "PingFang SC", sans-serif';
         ctx.textAlign = 'center';
         ctx.fillStyle = 'rgba(255,215,0,' + alpha + ')';
 
         if (Device.isMotionGranted() || !Device.isMotionSupported()) {
-            ctx.fillText('👆 按住屏幕，开始虔诚参拜', w / 2, h * 0.62);
+            ctx.fillText('👇 请将左右拇指同时按在下方两侧', w / 2, h * 0.55);
             ctx.font = '13px -apple-system, "PingFang SC", sans-serif';
             ctx.fillStyle = 'rgba(255,255,255,0.35)';
-            ctx.fillText(Device.isMotionSupported() ? '按住后上下移动手机' : '按住后点击屏幕参拜', w / 2, h * 0.67);
+            ctx.fillText(Device.isMotionSupported() ? '按住后上下移动手机参拜' : '按住后点击屏幕参拜', w / 2, h * 0.6);
         } else {
-            ctx.fillText('请先开启体感权限', w / 2, h * 0.62);
+            ctx.fillText('请先开启体感权限', w / 2, h * 0.55);
         }
         ctx.restore();
     }
 
     function _renderBowing(ctx, w, h, god) {
         var bobY = _touching ? Math.sin(_time * 6) * 5 : 0;
-        Draw.drawHalo(ctx, w / 2, h * 0.33 + bobY, 90, god.color, 0.2);
-        god.draw(ctx, w / 2, h * 0.35 + bobY, 1.0);
+        Draw.drawHalo(ctx, w / 2, h * 0.28 + bobY, 90, god.color, 0.2);
+        god.draw(ctx, w / 2, h * 0.3 + bobY, 1.0);
 
-        // 进度
         UI.drawTitle(ctx, god.name, w / 2, h * 0.08, 22, '#FFD700');
 
+        _drawIncense(ctx, w, h);
+        _drawThumbZones(ctx, w, h);
+
+        // 拜拜进度
         ctx.save();
-        ctx.font = 'bold 48px -apple-system, sans-serif';
+        ctx.font = 'bold 42px -apple-system, sans-serif';
         ctx.textAlign = 'center';
         ctx.fillStyle = '#FFD700';
-        ctx.fillText(_bowCount + ' / ' + _maxBows, w / 2, h * 0.62);
+        ctx.fillText(_bowCount + ' / ' + _maxBows, w / 2, h * 0.55);
 
         ctx.font = '14px -apple-system, "PingFang SC", sans-serif';
         ctx.fillStyle = 'rgba(255,255,255,0.5)';
         if (!_touching) {
             ctx.fillStyle = 'rgba(255,100,100,0.8)';
-            ctx.fillText('请按住屏幕不要松手', w / 2, h * 0.68);
+            if (!_leftThumbDown && !_rightThumbDown) {
+                ctx.fillText('请同时按住下方两个拇指位', w / 2, h * 0.61);
+            } else if (!_leftThumbDown) {
+                ctx.fillText('请按住左侧拇指位', w / 2, h * 0.61);
+            } else {
+                ctx.fillText('请按住右侧拇指位', w / 2, h * 0.61);
+            }
         } else if (Device.isMotionSupported()) {
-            ctx.fillText('按住屏幕，上下移动手机参拜', w / 2, h * 0.68);
+            ctx.fillText('保持按住，上下移动手机参拜', w / 2, h * 0.61);
         } else {
-            ctx.fillText('点击屏幕参拜', w / 2, h * 0.68);
+            ctx.fillText('点击屏幕参拜', w / 2, h * 0.61);
         }
         ctx.restore();
 
-        // 不支持陀螺仪 — 点击计数
-        if (!Device.isMotionSupported() && _touching) {
-            // 通过 touch 事件中判断
-        }
-
         // 进度条
-        var barW = Math.min(w * 0.6, 200);
-        UI.drawProgressBar(ctx, (w - barW) / 2, h * 0.73, barW, 8, _bowCount / _maxBows, '#FFD700');
+        var barW = Math.min(w * 0.5, 180);
+        UI.drawProgressBar(ctx, (w - barW) / 2, h * 0.66, barW, 8, _bowCount / _maxBows, '#FFD700');
     }
 
     function _renderResult(ctx, w, h, god) {
@@ -441,12 +595,14 @@ var WorshipScene = (function () {
             canvas.removeEventListener('touchstart', _touchStartHandler);
             canvas.removeEventListener('mousedown', _touchStartHandler);
         }
+        if (_touchMoveHandler) {
+            canvas.removeEventListener('touchmove', _touchMoveHandler);
+        }
         if (_touchEndHandler) {
             canvas.removeEventListener('touchend', _touchEndHandler);
             canvas.removeEventListener('mouseup', _touchEndHandler);
         }
-        _touchStartHandler = null;
-        _touchEndHandler = null;
+        _touchStartHandler = _touchMoveHandler = _touchEndHandler = null;
     }
 
     return {
