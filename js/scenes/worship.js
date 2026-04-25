@@ -21,6 +21,14 @@ var WorshipScene = (function () {
     var _touchEndHandler = null;
     var _motionRequested = false;
     var _incenseGlow = 0;
+    var _desktopMode = false;
+    var _spaceDown = false;
+    var _desktopLastY = null;
+    var _desktopSlideDelta = 0;
+    var _desktopSlideDir = 0;
+    var _desktopSlideCount = 0;
+    var _desktopKeyHandler = null;
+    var _desktopMoveHandler = null;
     var _godImages = {};  // 预加载的财神 PNG 图片
     var _imagesLoaded = false;
     var _worshipCost = 10;
@@ -97,6 +105,11 @@ var WorshipScene = (function () {
 
     function _triggerInsufficientHint() {
         _insufficientHintTimer = 2.6;
+    }
+
+    var _IS_MOBILE_RE = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i;
+    function _isMobileClient() {
+        return _IS_MOBILE_RE.test(navigator.userAgent);
     }
 
     function _drawReturnHint(ctx) {
@@ -273,8 +286,24 @@ var WorshipScene = (function () {
             }
         });
 
-        // 请求陀螺仪权限
-        if (!Device.isMotionGranted()) {
+        // 请求陀螺仪权限（仅移动端需要）
+        if (!_isMobileClient()) {
+            // 桌面端：跳过权限申请，直接进入 bowing
+            UI.createButton({
+                x: 15, y: 15, w: 70, h: 36,
+                text: '返回',
+                color: 'rgba(255,255,255,0.7)',
+                bgColor: 'rgba(255,255,255,0.05)',
+                borderColor: 'rgba(255,255,255,0.15)',
+                fontSize: 13, radius: 18,
+                onClick: function () {
+                    _phase = 'select';
+                    _cleanupDesktopFallback();
+                    _setupSelectButtons();
+                }
+            });
+            _startBowing();
+        } else if (!Device.isMotionGranted()) {
             var W = Engine.width();
             var btnW = Math.min(W * 0.7, 260);
             UI.createButton({
@@ -338,7 +367,7 @@ var WorshipScene = (function () {
                     // 桌面鼠标模拟：视为双拇指同时按下
                     _leftThumbDown = true; _rightThumbDown = true; _touching = true;
                 }
-                if (_phase === 'prepare' && _touching && (Device.isMotionGranted() || !Device.isMotionSupported())) {
+                if (_phase === 'prepare' && _touching && (Device.isMotionGranted() || !_isMobileClient())) {
                     _startBowing();
                 }
             }
@@ -402,15 +431,19 @@ var WorshipScene = (function () {
                 doBow();
             };
             Device.onBow(_bowCallback);
+        } else if (!_isMobileClient()) {
+            // 桌面端：空格 + 鼠标上下滑动
+            _bowCallback = null;
+            _setupDesktopFallback(doBow);
         } else {
-            // 无陀螺仪 → 点击屏幕计数
+            // 有陀螺仪权限但未授权 → 点击屏幕计数
             _bowCallback = null;
             var canvas = Engine.getCanvas();
             var lastTap = 0;
             _fallbackTapHandler = function (e) {
                 if (_phase !== 'bowing') return;
                 var now = Date.now();
-                if (now - lastTap < 400) return; // 防抖
+                if (now - lastTap < 400) return;
                 lastTap = now;
                 doBow();
             };
@@ -425,6 +458,73 @@ var WorshipScene = (function () {
             canvas.removeEventListener('touchstart', _fallbackTapHandler);
             canvas.removeEventListener('click', _fallbackTapHandler);
             _fallbackTapHandler = null;
+        }
+        _cleanupDesktopFallback();
+    }
+
+    function _setupDesktopFallback(doBow) {
+        _desktopMode = true;
+        _desktopSlideCount = 0;
+        _desktopSlideDelta = 0;
+        _desktopSlideDir = 0;
+        _desktopLastY = null;
+
+        _desktopKeyHandler = function (e) {
+            if (e.code === 'Space') {
+                if (e.type === 'keydown' && !_spaceDown) {
+                    _spaceDown = true;
+                    _desktopLastY = null;
+                    _desktopSlideDelta = 0;
+                    _desktopSlideDir = 0;
+                } else if (e.type === 'keyup' && _spaceDown) {
+                    _spaceDown = false;
+                }
+            }
+        };
+
+        _desktopMoveHandler = function (e) {
+            if (!_spaceDown) return;
+
+            var dy = e.movementY;
+            if (dy == null) {
+                if (_desktopLastY == null) {
+                    _desktopLastY = e.clientY;
+                    return;
+                }
+                dy = e.clientY - _desktopLastY;
+            }
+            _desktopLastY = e.clientY;
+            _desktopSlideDelta += dy;
+
+            var dir = _desktopSlideDelta > 0 ? 1 : _desktopSlideDelta < 0 ? -1 : 0;
+            if (dir !== 0 && dir !== _desktopSlideDir) {
+                if (Math.abs(_desktopSlideDelta) >= 50) {
+                    _desktopSlideCount++;
+                    _desktopSlideDelta = 0;
+                    _desktopSlideDir = 0;
+                    Device.tapVibrate();
+                    doBow();
+                } else {
+                    _desktopSlideDir = dir;
+                }
+            }
+        };
+
+        document.addEventListener('keydown', _desktopKeyHandler);
+        document.addEventListener('keyup', _desktopKeyHandler);
+        document.addEventListener('mousemove', _desktopMoveHandler);
+    }
+
+    function _cleanupDesktopFallback() {
+        _desktopMode = false;
+        if (_desktopKeyHandler) {
+            document.removeEventListener('keydown', _desktopKeyHandler);
+            document.removeEventListener('keyup', _desktopKeyHandler);
+            _desktopKeyHandler = null;
+        }
+        if (_desktopMoveHandler) {
+            document.removeEventListener('mousemove', _desktopMoveHandler);
+            _desktopMoveHandler = null;
         }
     }
 
@@ -595,7 +695,7 @@ var WorshipScene = (function () {
         ];
         for (var i = 0; i < arr.length; i++) {
             var item = arr[i];
-            var pulse = Math.sin(_time * 5) * 0.1;
+            var pulse = (Math.sin(_time * 1.5) + 1) / 2 * 0.18 + 0.06;
             ctx.save();
             ctx.beginPath();
             ctx.arc(item.z.x, item.z.y, item.z.r, 0, Math.PI * 2);
@@ -658,13 +758,13 @@ var WorshipScene = (function () {
         ctx.strokeStyle = '#24113f';
         ctx.fillStyle = 'rgba(255,216,76,' + alpha + ')';
 
-        if (Device.isMotionGranted() || !Device.isMotionSupported()) {
+        if (Device.isMotionGranted() || !_isMobileClient()) {
             ctx.strokeText('请将左右拇指同时按在下方两侧', w / 2, h * 0.55);
             ctx.fillText('请将左右拇指同时按在下方两侧', w / 2, h * 0.55);
             ctx.font = '13px "PoxiaoPixel"';
             ctx.fillStyle = '#fff2c1';
-            ctx.strokeText(Device.isMotionSupported() ? '按住后上下移动手机参拜' : '按住后点击屏幕参拜', w / 2, h * 0.6);
-            ctx.fillText(Device.isMotionSupported() ? '按住后上下移动手机参拜' : '按住后点击屏幕参拜', w / 2, h * 0.6);
+            ctx.strokeText(_isMobileClient() ? '按住后上下移动手机参拜' : '按住后点击屏幕参拜', w / 2, h * 0.6);
+            ctx.fillText(_isMobileClient() ? '按住后上下移动手机参拜' : '按住后点击屏幕参拜', w / 2, h * 0.6);
         } else {
             ctx.strokeText('请先开启体感权限', w / 2, h * 0.55);
             ctx.fillText('请先开启体感权限', w / 2, h * 0.55);
@@ -700,7 +800,11 @@ var WorshipScene = (function () {
         ctx.font = '14px "PoxiaoPixel"';
         ctx.lineWidth = 3;
         ctx.fillStyle = '#fff2c1';
-        if (!_touching) {
+        if (_desktopMode) {
+            var pulse = (Math.sin(_time * 1.5) + 1) / 2 * 0.4 + 0.6;
+            ctx.fillStyle = 'rgba(255,216,76,' + (0.6 + pulse * 0.4) + ')';
+            ctx.fillText('按住 [空格键] 并上下移动鼠标 ' + _bowCount + ' / ' + _maxBows, w / 2, h * 0.61);
+        } else if (!_touching) {
             ctx.fillStyle = '#ff5a48';
             if (!_leftThumbDown && !_rightThumbDown) {
                 ctx.fillText('请同时按住下方两个拇指位', w / 2, h * 0.61);
@@ -709,7 +813,7 @@ var WorshipScene = (function () {
             } else {
                 ctx.fillText('请按住右侧拇指位', w / 2, h * 0.61);
             }
-        } else if (Device.isMotionSupported()) {
+        } else if (_isMobileClient()) {
             ctx.fillText('保持按住，上下移动手机参拜', w / 2, h * 0.61);
         } else {
             ctx.fillText('点击屏幕参拜', w / 2, h * 0.61);
@@ -759,6 +863,7 @@ var WorshipScene = (function () {
         UI.clearButtons();
         if (_bowCallback) Device.offBow(_bowCallback);
         _removeFallbackTap();
+        _cleanupDesktopFallback();
         var canvas = Engine.getCanvas();
         if (_touchStartHandler) {
             canvas.removeEventListener('touchstart', _touchStartHandler);

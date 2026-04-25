@@ -153,10 +153,16 @@ var Device = (function () {
         return 'DeviceMotionEvent' in window;
     }
 
+    /** 检测是否移动端（通过 UserAgent，精确度要求不高） */
+    function isMobile() {
+        return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+
     return {
         requestMotionPermission: requestMotionPermission,
         isMotionGranted: isMotionGranted,
         isMotionSupported: isMotionSupported,
+        isMobile: isMobile,
         onShake: onShake,
         offShake: offShake,
         onBow: onBow,

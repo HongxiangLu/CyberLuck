@@ -281,6 +281,11 @@ html, body {
     }
 }
 
+@keyframes worship-desktop-pulse {
+    0%, 100% { opacity: 0.55; }
+    50%       { opacity: 1; }
+}
+
 #meritBadge {
     position: fixed;
     top: max(14px, env(safe-area-inset-top));
