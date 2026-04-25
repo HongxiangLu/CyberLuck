@@ -10,6 +10,22 @@ var HomeScene = (function () {
     var _heroImg = null;
     var _clickAnim = 0;
     var _touchHandler = null;
+    var _starterClaimed = false;
+    var _starterStorageKey = 'cyberluck_initial_merit_claimed';
+
+    function _readStarterClaimed() {
+        try {
+            return localStorage.getItem(_starterStorageKey) === '1';
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function _writeStarterClaimed() {
+        try {
+            localStorage.setItem(_starterStorageKey, '1');
+        } catch (e) {}
+    }
 
     function init() {
         UI.clearButtons();
@@ -20,6 +36,7 @@ var HomeScene = (function () {
             _heroImg = new Image();
             _heroImg.src = './images/李诡祖增福财神.png';
         }
+        _starterClaimed = _readStarterClaimed();
 
         // 生成装饰祥云
         for (var i = 0; i < 6; i++) {
@@ -102,7 +119,18 @@ var HomeScene = (function () {
                 Audio.init();
                 Audio.playSuccess();
                 Device.tapVibrate();
-                Engine.addFloatingText(x + (Math.random() - 0.5) * 40, y - 20, '财运 +1', '#FFD700', 22);
+                if (!_starterClaimed) {
+                    var rewards = [22, 33, 66];
+                    var reward = rewards[Math.floor(Math.random() * rewards.length)];
+                    _starterClaimed = true;
+                    _writeStarterClaimed();
+                    MeritSystem.addPoints(reward);
+                    MeritSystem.showToast('初始功德到账 +' + reward, 'success');
+                    Engine.addGoldBurst(x, y - 10);
+                    Engine.addFloatingText(x + (Math.random() - 0.5) * 40, y - 20, '+' + reward, '#FFD700', 24);
+                } else {
+                    MeritSystem.showToast('初始功德已经领过啦，去敲木鱼继续积攒吧', 'info');
+                }
             }
         };
 
@@ -158,11 +186,30 @@ var HomeScene = (function () {
             ctx.scale(scale, scale);
             ctx.drawImage(_heroImg, -imgW / 2, -imgH / 2, imgW, imgH);
         } else {
-            ctx.translate(w / 2, h * 0.28 + hoverY);
-            ctx.scale(scale, scale);
-            Draw.drawZhaoGongMing(ctx, 0, 0, 0.65);
+            ctx.font = '13px "PoxiaoPixel"';
+            ctx.textAlign = 'center';
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#24113f';
+            ctx.strokeText('PNG载入中', w / 2, h * 0.26 + hoverY);
+            ctx.fillStyle = '#fff2c1';
+            ctx.fillText('PNG载入中', w / 2, h * 0.26 + hoverY);
         }
         ctx.restore();
+
+        if (!_starterClaimed) {
+            var hintAlpha = 0.4 + Math.sin(_time * 1.6) * 0.25;
+            ctx.save();
+            ctx.font = '13px "PoxiaoPixel"';
+            ctx.textAlign = 'center';
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = 'rgba(36,17,63,' + hintAlpha + ')';
+            ctx.strokeText('点我获得初始功德', w / 2, h * 0.34);
+            ctx.fillStyle = 'rgba(255,242,193,' + hintAlpha + ')';
+            ctx.fillText('点我获得初始功德', w / 2, h * 0.34);
+            ctx.restore();
+        }
 
         // 版本信息
         UI.drawSubtitle(ctx, '今年的好运，先拜为敬', w / 2, h * 0.92, 16, Draw.THEME.cyan);

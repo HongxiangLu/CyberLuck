@@ -5,7 +5,6 @@ var WoodenFishScene = (function () {
     'use strict';
 
     var _merit = 0;
-    var _totalMerit = 0;
     var _hitAnim = 0;
     var _malletAngle = 0;
     var _time = 0;
@@ -21,6 +20,7 @@ var WoodenFishScene = (function () {
     ];
 
     var _touchHandler = null;
+    var _unsubscribeMerit = null;
 
     function init() {
         UI.clearButtons();
@@ -28,13 +28,12 @@ var WoodenFishScene = (function () {
         _malletAngle = 0;
         _time = 0;
         _ripples = [];
-
-        // 从 localStorage 读取
-        try {
-            _totalMerit = parseInt(localStorage.getItem('woodenfish_merit') || '0', 10);
-        } catch (e) { _totalMerit = 0; }
-        _merit = _totalMerit;
+        _merit = MeritSystem.getPoints();
         _updateLevel();
+        _unsubscribeMerit = MeritSystem.onChange(function (points) {
+            _merit = points;
+            _updateLevel();
+        });
 
         // 返回按钮
         UI.createButton({
@@ -66,9 +65,8 @@ var WoodenFishScene = (function () {
         Audio.playWoodHit();
         Device.tapVibrate();
 
-        _merit++;
-        _totalMerit = _merit;
-        try { localStorage.setItem('woodenfish_merit', String(_totalMerit)); } catch (e) {}
+        var gain = 1;
+        MeritSystem.addPoints(gain);
 
         _hitAnim = 1;
         _malletAngle = -0.5;
@@ -79,7 +77,7 @@ var WoodenFishScene = (function () {
         Engine.addFloatingText(
             W / 2 + (Math.random() - 0.5) * 40,
             H * 0.32,
-            '功德 +1',
+            '+' + gain,
             '#FFD700',
             22
         );
@@ -90,7 +88,7 @@ var WoodenFishScene = (function () {
         _updateLevel();
 
         // 粒子
-        if (_merit % 10 === 0) {
+        if (_merit > 0 && _merit % 10 === 0) {
             Engine.addGoldBurst(W / 2, H * 0.45);
         }
     }
@@ -204,6 +202,10 @@ var WoodenFishScene = (function () {
             canvas.removeEventListener('mousedown', _touchHandler);
         }
         _touchHandler = null;
+        if (_unsubscribeMerit) {
+            _unsubscribeMerit();
+            _unsubscribeMerit = null;
+        }
     }
 
     return {

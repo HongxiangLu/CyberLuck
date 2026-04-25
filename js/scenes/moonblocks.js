@@ -20,30 +20,33 @@ var MoonBlocksScene = (function () {
     var _touchStartHandler = null;
     var _touchEndHandler = null;
     var _motionRequested = false;
+    var _moonCost = 20;
+    var _pendingStake = 0;
+    var _insufficientHintTimer = 0;
 
     var results = {
         sheng: {
             name: '圣杯',
             emoji: '',
             desc: '一正一反',
-            message: '神明应允，心诚则灵',
-            detail: '此为吉兆，所求之事可期而待',
+            message: '神明大悦，功德翻倍！',
+            detail: '双倍投入尽数奉还，此乃上上吉兆',
             color: '#FFD700'
         },
         xiao: {
             name: '笑杯',
             emoji: '',
             desc: '双正',
-            message: '神明微笑，再问一次',
-            detail: '问题尚需明确，不妨换个方式再问',
+            message: '神明微笑，功德不变',
+            detail: '本次投入如数退还，不赚不赔',
             color: '#87CEEB'
         },
         ku: {
             name: '哭杯',
             emoji: '',
             desc: '双反',
-            message: '时机未到，静候佳音',
-            detail: '莫急莫躁，耐心等待时机成熟',
+            message: '神明不语，功德散尽',
+            detail: '本次投入全部没收，且待下回机缘',
             color: '#DDA0DD'
         }
     };
@@ -56,6 +59,8 @@ var MoonBlocksScene = (function () {
         _time = 0;
         _result = null;
         _motionRequested = false;
+        _pendingStake = 0;
+        _insufficientHintTimer = 0;
         UI.clearButtons();
         _setupPrepareUI();
         Engine.startLoop(render);
@@ -113,6 +118,7 @@ var MoonBlocksScene = (function () {
             _touching = true;
 
             if (_phase === 'prepare' && (Device.isMotionGranted() || !Device.isMotionSupported())) {
+                if (!_beginWager()) return;
                 _startShaking();
             }
         };
@@ -146,6 +152,7 @@ var MoonBlocksScene = (function () {
             fontSize: 13, radius: 18,
             onClick: function () {
                 if (_shakeCallback) Device.offShake(_shakeCallback);
+                _refundPendingStake();
                 _phase = 'prepare';
                 _setupPrepareUI();
             }
@@ -200,6 +207,26 @@ var MoonBlocksScene = (function () {
         }
     }
 
+    function _beginWager() {
+        if (_pendingStake > 0) return true;
+        if (!MeritSystem.canAfford(_moonCost)) {
+            MeritSystem.showToast('功德不足，请先敲击木鱼积攒功德', 'warning');
+            _insufficientHintTimer = 2.6;
+            return false;
+        }
+        MeritSystem.deductPoints(_moonCost);
+        _pendingStake = _moonCost;
+        MeritSystem.showToast('已投入 ' + _moonCost + ' 功德，静候杯筊', 'info');
+        return true;
+    }
+
+    function _refundPendingStake() {
+        if (_pendingStake <= 0) return;
+        MeritSystem.addPoints(_pendingStake);
+        MeritSystem.showToast('本次掷筊已取消，功德已退回', 'info');
+        _pendingStake = 0;
+    }
+
     function _throwBlocks() {
         _phase = 'falling';
         _fallTimer = 0;
@@ -244,6 +271,17 @@ var MoonBlocksScene = (function () {
         _resultTimer = 0;
         Device.mediumVibrate();
 
+        if (_result === 'sheng') {
+            MeritSystem.addPoints(_pendingStake * 2);
+            MeritSystem.showToast('神明大悦，功德翻倍！', 'success');
+        } else if (_result === 'xiao') {
+            MeritSystem.addPoints(_pendingStake);
+            MeritSystem.showToast('神明微笑，功德不变', 'info');
+        } else {
+            MeritSystem.showToast('神明不语，功德散尽', 'danger');
+        }
+        _pendingStake = 0;
+
         var r = results[_result];
         UI.clearButtons();
         var W = Engine.width();
@@ -280,6 +318,7 @@ var MoonBlocksScene = (function () {
 
     function render(ctx, w, h) {
         _time += 0.016;
+        if (_insufficientHintTimer > 0) _insufficientHintTimer -= 0.016;
 
         Draw.drawBackground(ctx, w, h);
         Draw.drawFrame(ctx, w, h);
@@ -301,6 +340,22 @@ var MoonBlocksScene = (function () {
         }
 
         UI.drawButtons(ctx);
+        _drawReturnHint(ctx);
+    }
+
+    function _drawReturnHint(ctx) {
+        if (_insufficientHintTimer <= 0) return;
+        var alpha = Math.min(1, _insufficientHintTimer / 0.5);
+        ctx.save();
+        ctx.font = '11px "PoxiaoPixel"';
+        ctx.textAlign = 'left';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(36,17,63,' + alpha + ')';
+        ctx.fillStyle = 'rgba(255,242,193,' + alpha + ')';
+        ctx.strokeText('先返回首页敲木鱼攒功德', 92, 36);
+        ctx.fillText('先返回首页敲木鱼攒功德', 92, 36);
+        ctx.restore();
     }
 
     function _renderPrepare(ctx, w, h) {
@@ -325,14 +380,16 @@ var MoonBlocksScene = (function () {
         ctx.fillStyle = 'rgba(255,216,76,' + alpha + ')';
 
         if (Device.isMotionGranted() || !Device.isMotionSupported()) {
-            ctx.strokeText('双手握住手机', w / 2, h * 0.58);
-            ctx.fillText('双手握住手机', w / 2, h * 0.58);
+            ctx.strokeText('双手握住手机', w / 2, h * 0.56);
+            ctx.fillText('双手握住手机', w / 2, h * 0.56);
             ctx.font = '14px "PoxiaoPixel"';
             ctx.fillStyle = '#fff2c1';
-            ctx.strokeText('心中默念问题', w / 2, h * 0.63);
-            ctx.fillText('心中默念问题', w / 2, h * 0.63);
-            ctx.strokeText(Device.isMotionSupported() ? '按住屏幕后晃动手机投掷' : '按住屏幕后点击投掷', w / 2, h * 0.67);
-            ctx.fillText(Device.isMotionSupported() ? '按住屏幕后晃动手机投掷' : '按住屏幕后点击投掷', w / 2, h * 0.67);
+            ctx.strokeText('每次投掷消耗 ' + _moonCost + ' 功德', w / 2, h * 0.61);
+            ctx.fillText('每次投掷消耗 ' + _moonCost + ' 功德', w / 2, h * 0.61);
+            ctx.strokeText('心中默念问题', w / 2, h * 0.66);
+            ctx.fillText('心中默念问题', w / 2, h * 0.66);
+            ctx.strokeText(Device.isMotionSupported() ? '按住屏幕后晃动手机投掷' : '按住屏幕后点击投掷', w / 2, h * 0.7);
+            ctx.fillText(Device.isMotionSupported() ? '按住屏幕后晃动手机投掷' : '按住屏幕后点击投掷', w / 2, h * 0.7);
         } else {
             ctx.strokeText('请先开启体感权限', w / 2, h * 0.6);
             ctx.fillText('请先开启体感权限', w / 2, h * 0.6);
@@ -475,6 +532,7 @@ var MoonBlocksScene = (function () {
         UI.clearButtons();
         if (_shakeCallback) Device.offShake(_shakeCallback);
         _removeFallbackTap();
+        _refundPendingStake();
         var canvas = Engine.getCanvas();
         if (_touchStartHandler) {
             canvas.removeEventListener('touchstart', _touchStartHandler);

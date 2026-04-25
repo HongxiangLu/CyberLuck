@@ -62,6 +62,7 @@ var App = (function () {
         try {
             _setupErrorHandler();
             Engine.init();
+            MeritSystem.init();
             UI.bindTouch(Engine.getCanvas());
             _registerScenes();
             _loadFontAndStart();

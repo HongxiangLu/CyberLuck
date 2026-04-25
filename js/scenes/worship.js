@@ -21,10 +21,12 @@ var WorshipScene = (function () {
     var _touchEndHandler = null;
     var _motionRequested = false;
     var _incenseGlow = 0;
-    var _godImages = {};  // 预加载的财神 SVG 图片
+    var _godImages = {};  // 预加载的财神 PNG 图片
     var _imagesLoaded = false;
+    var _worshipCost = 10;
+    var _insufficientHintTimer = 0;
 
-    /** 预加载所有财神 SVG 图片 */
+    /** 预加载所有财神 PNG 图片 */
     function _preloadGodImages(callback) {
         var mapping = {
             '赵公明·正财神': './images/赵公明·正财神.png',
@@ -47,7 +49,7 @@ var WorshipScene = (function () {
                     }
                 };
                 img.onerror = function () {
-                    // 加载失败，使用 null 标记，渲染时回退到 Canvas 矢量
+                    // 加载失败时只显示占位提示，不再回退到矢量图
                     _godImages[name] = null;
                     loaded++;
                     if (loaded >= total) {
@@ -60,23 +62,62 @@ var WorshipScene = (function () {
         }
     }
 
-    /** 绘制财神形象（优先 SVG 图片，回退 Canvas 矢量） */
-    function _drawGodImage(ctx, name, cx, cy, scale, fallbackDraw) {
+    /** 只绘制 PNG，避免再回退到旧的矢量财神 */
+    function _drawGodImage(ctx, name, cx, cy, scale) {
         var img = _godImages[name];
-        if (img) {
+        if (img && img.complete) {
             var drawH = 200 * scale;
             var ratio = img.naturalWidth / img.naturalHeight;
             var drawW = drawH * ratio;
             ctx.drawImage(img, cx - drawW / 2, cy - drawH / 2, drawW, drawH);
-        } else if (fallbackDraw) {
-            fallbackDraw(ctx, cx, cy, scale);
+        } else {
+            _drawImagePlaceholder(ctx, cx, cy, scale);
         }
+    }
+
+    function _drawImagePlaceholder(ctx, cx, cy, scale) {
+        var boxW = 120 * scale;
+        var boxH = 150 * scale;
+        ctx.save();
+        ctx.fillStyle = 'rgba(36,17,63,0.82)';
+        ctx.strokeStyle = '#63efff';
+        ctx.lineWidth = 3;
+        ctx.fillRect(cx - boxW / 2, cy - boxH / 2, boxW, boxH);
+        ctx.strokeRect(cx - boxW / 2, cy - boxH / 2, boxW, boxH);
+        ctx.font = '12px "PoxiaoPixel"';
+        ctx.textAlign = 'center';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#24113f';
+        ctx.strokeText('PNG载入中', cx, cy);
+        ctx.fillStyle = '#fff2c1';
+        ctx.fillText('PNG载入中', cx, cy);
+        ctx.restore();
+    }
+
+    function _triggerInsufficientHint() {
+        _insufficientHintTimer = 2.6;
+    }
+
+    function _drawReturnHint(ctx) {
+        if (_insufficientHintTimer <= 0) return;
+        var alpha = Math.min(1, _insufficientHintTimer / 0.5);
+        ctx.save();
+        ctx.font = '11px "PoxiaoPixel"';
+        ctx.textAlign = 'left';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(36,17,63,' + alpha + ')';
+        ctx.fillStyle = 'rgba(255,242,193,' + alpha + ')';
+        ctx.strokeText('先返回首页敲木鱼攒功德', 92, 36);
+        ctx.fillText('先返回首页敲木鱼攒功德', 92, 36);
+        ctx.restore();
     }
 
     var gods = [
         {
             name: '赵公明·正财神',
-            draw: function (ctx, cx, cy, s) { _drawGodImage(ctx, '赵公明·正财神', cx, cy, s, Draw.drawZhaoGongMing); },
+            draw: function (ctx, cx, cy, s) { _drawGodImage(ctx, '赵公明·正财神', cx, cy, s); },
             color: '#ff2a2a',
             desc: '掌八方财运，护日常财源，佑稳步暴富',
             hint: '求财刚需首选，打工存钱专属守护神',
@@ -89,7 +130,7 @@ var WorshipScene = (function () {
         },
         {
             name: '关二爷·武财神',
-            draw: function (ctx, cx, cy, s) { _drawGodImage(ctx, '关二爷·武财神', cx, cy, s, Draw.drawGuanYu); },
+            draw: function (ctx, cx, cy, s) { _drawGodImage(ctx, '关二爷·武财神', cx, cy, s); },
             color: '#228B22',
             desc: '守忠义正气，镇职场是非，助事业顺遂',
             hint: '职场打拼、面试晋升、远离职场内耗',
@@ -102,7 +143,7 @@ var WorshipScene = (function () {
         },
         {
             name: '比干·文财神',
-            draw: function (ctx, cx, cy, s) { _drawGodImage(ctx, '比干·文财神', cx, cy, s, Draw.drawBiGan); },
+            draw: function (ctx, cx, cy, s) { _drawGodImage(ctx, '比干·文财神', cx, cy, s); },
             color: '#8a2be2',
             desc: '揽平安福气，解心头烦忧，护岁岁安稳',
             hint: '求身心舒畅、平安健康、告别emo',
@@ -115,7 +156,7 @@ var WorshipScene = (function () {
         },
         {
             name: '范蠡·商财神',
-            draw: function (ctx, cx, cy, s) { _drawGodImage(ctx, '范蠡·商财神', cx, cy, s, Draw.drawWenCaiShen); },
+            draw: function (ctx, cx, cy, s) { _drawGodImage(ctx, '范蠡·商财神', cx, cy, s); },
             color: '#00f0ff',
             desc: '通财富玄机，助副业增收，利意外之财',
             hint: '副业创收、理财转运、咸鱼翻身',
@@ -135,6 +176,7 @@ var WorshipScene = (function () {
         _touching = false;
         _time = 0;
         _motionRequested = false;
+        _insufficientHintTimer = 0;
         UI.clearButtons();
         _setupSelectButtons();
         Engine.startLoop(render);
@@ -192,6 +234,11 @@ var WorshipScene = (function () {
             radius: 26,
             onClick: function () {
                 Audio.playTap();
+                if (!MeritSystem.canAfford(_worshipCost)) {
+                    MeritSystem.showToast('功德不足，请先敲击木鱼积攒功德', 'warning');
+                    _triggerInsufficientHint();
+                    return;
+                }
                 _goToPrepare();
             }
         });
@@ -393,6 +440,8 @@ var WorshipScene = (function () {
         Engine.addGoldBurst(W / 2, Engine.height() * 0.35);
         Audio.playSuccess();
         Device.mediumVibrate();
+        MeritSystem.deductPoints(_worshipCost);
+        MeritSystem.showToast('虔心已达，消耗 10 功德', 'success');
 
         UI.clearButtons();
         var btnW = Math.min(W * 0.55, 200);
@@ -425,6 +474,7 @@ var WorshipScene = (function () {
 
     function render(ctx, w, h) {
         _time += 0.016;
+        if (_insufficientHintTimer > 0) _insufficientHintTimer -= 0.016;
 
         var god = gods[_selectedGod];
         Draw.drawBackground(ctx, w, h);
@@ -447,6 +497,7 @@ var WorshipScene = (function () {
         }
 
         UI.drawButtons(ctx);
+        _drawReturnHint(ctx);
     }
 
     function _renderSelect(ctx, w, h, god) {
@@ -483,7 +534,8 @@ var WorshipScene = (function () {
         ctx.restore();
 
         // 底部提示
-        UI.drawSubtitle(ctx, '请择一位神明，开启你的专属赛博祈福', w / 2, h * 0.9, 14, Draw.THEME.cyan);
+        UI.drawSubtitle(ctx, '请择一位神明，开启你的专属赛博祈福', w / 2, h * 0.88, 14, Draw.THEME.cyan);
+        UI.drawSubtitle(ctx, '每次参拜消耗 ' + _worshipCost + ' 功德', w / 2, h * 0.92, 12, Draw.THEME.gold);
     }
 
     /** 绘制三根香 */
