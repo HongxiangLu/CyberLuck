@@ -559,8 +559,8 @@ var MoonBlocksScene = (function () {
         UI.drawRoundedRect(ctx, w / 2 - titleW / 2, h * 0.08, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
         UI.drawTitle(ctx, '物理掷筊协议', w / 2, h * 0.08 + titleH / 2 + 2, 22, Draw.THEME.gold);
 
-        Draw.drawMoonBlock(ctx, w * 0.38, h * 0.38, 1.5, true, Math.sin(_time) * 0.1);
-        Draw.drawMoonBlock(ctx, w * 0.62, h * 0.42, 1.5, false, Math.cos(_time) * 0.1);
+        Draw.drawMoonBlock(ctx, w * 0.38, h * 0.38, 1.5, true, Math.sin(_time) * 0.1, true);
+        Draw.drawMoonBlock(ctx, w * 0.62, h * 0.42, 1.5, false, Math.cos(_time) * 0.1, false);
         Draw.drawHalo(ctx, w / 2, h * 0.4, 100, '#ff58b3', 0.1 + Math.sin(_time * 2) * 0.04);
 
         var alpha = 0.5 + Math.sin(_time * 3) * 0.3;
@@ -598,8 +598,8 @@ var MoonBlocksScene = (function () {
 
         ctx.save();
         ctx.translate(shake, shake * 0.5);
-        Draw.drawMoonBlock(ctx, w * 0.38, h * 0.38, 1.5, true, _time * 3);
-        Draw.drawMoonBlock(ctx, w * 0.62, h * 0.42, 1.5, false, -_time * 2.5);
+        Draw.drawMoonBlock(ctx, w * 0.38, h * 0.38, 1.5, true, _time * 3, true);
+        Draw.drawMoonBlock(ctx, w * 0.62, h * 0.42, 1.5, false, -_time * 2.5, false);
         ctx.restore();
 
         ctx.save();
@@ -652,7 +652,7 @@ var MoonBlocksScene = (function () {
                 allLanded = false;
             }
 
-            Draw.drawMoonBlock(ctx, b.x, b.y, 1.8, b.faceUp, b.rotation);
+            Draw.drawMoonBlock(ctx, b.x, b.y, 1.8, b.faceUp, b.rotation, i === 0);
         }
 
         if (allLanded && _fallTimer > 0.8) _showResult();
@@ -662,8 +662,8 @@ var MoonBlocksScene = (function () {
         var r = results[_result];
         var fadeIn = Math.min(1, _resultTimer / 0.6);
 
-        Draw.drawMoonBlock(ctx, _block1.x, _block1.targetY, 1.8, _block1.faceUp, _block1.rotation);
-        Draw.drawMoonBlock(ctx, _block2.x, _block2.targetY, 1.8, _block2.faceUp, _block2.rotation);
+        Draw.drawMoonBlock(ctx, _block1.x, _block1.targetY, 1.8, _block1.faceUp, _block1.rotation, true);
+        Draw.drawMoonBlock(ctx, _block2.x, _block2.targetY, 1.8, _block2.faceUp, _block2.rotation, false);
         Draw.drawHalo(ctx, w / 2, h * 0.5, 120, r.color, 0.2 * fadeIn);
 
         ctx.save();

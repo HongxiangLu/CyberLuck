@@ -482,14 +482,37 @@ var Draw = (function () {
 
     /* ====== 杯筊绘制 ====== */
 
-    function drawMoonBlock(ctx, cx, cy, scale, isFaceUp, rotation) {
+    var _moonBlockImages = {};
+    function _getMoonBlockImage(isLeft, isFaceUp) {
+        var key = (isLeft ? '左' : '右') + (isFaceUp ? '正' : '反');
+        if (_moonBlockImages[key] !== undefined) {
+            return _moonBlockImages[key];
+        }
+        var img = new Image();
+        img.src = 'images/beijiao/' + key + '.png';
+        _moonBlockImages[key] = { img: img, loaded: false };
+        img.onload = function() {
+            _moonBlockImages[key].loaded = true;
+        };
+        return _moonBlockImages[key];
+    }
+
+    function drawMoonBlock(ctx, cx, cy, scale, isFaceUp, rotation, isLeft) {
         var s = scale || 1;
         ctx.save();
         ctx.translate(cx, cy);
         ctx.scale(s, s);
         ctx.rotate(rotation || 0);
 
-        if (isFaceUp) {
+        var imgData = (isLeft !== undefined) ? _getMoonBlockImage(isLeft, isFaceUp) : null;
+
+        if (imgData && imgData.loaded) {
+            var img = imgData.img;
+            var baseW = 60; // 调整显示的基础大小
+            var baseH = baseW * (img.naturalHeight / img.naturalWidth);
+            ctx.drawImage(img, -baseW / 2, -baseH / 2, baseW, baseH);
+        } else {
+            if (isFaceUp) {
             // 正面（平面朝上）— 红色
             ctx.beginPath();
             ctx.ellipse(0, 0, 28, 12, 0, 0, Math.PI * 2);
@@ -513,6 +536,7 @@ var Draw = (function () {
             ctx.fillStyle = '#ff8a3d';
             ctx.fillRect(-10, -2, 20, 3);
         }
+        } // 关闭 `if (imgData && imgData.loaded) { ... } else {`
 
         ctx.restore();
     }
