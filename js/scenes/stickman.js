@@ -19,6 +19,7 @@ var StickmanScene = (function () {
     var _dropDuration = 0.55;
     var _dropFromPose = null;
     var _dropToPose = null;
+    var _resultMeta = null;
 
     var _touchStartH = null, _touchMoveH = null, _touchEndH = null;
 
@@ -173,6 +174,7 @@ var StickmanScene = (function () {
         Audio.playTap();
         _phase = 'playing';
         _selectedSeg = null;
+        _resultMeta = null;
         _dropProgress = 0;
         _dropFromPose = _capturePose();
         _dropToPose = _buildLoosePose();
@@ -231,6 +233,7 @@ var StickmanScene = (function () {
         _timer = 8;
         _time = 0;
         _selectedSeg = null;
+        _resultMeta = null;
         _dropProgress = 1;
         W = Engine.width();
         H = Engine.height();
@@ -339,6 +342,81 @@ var StickmanScene = (function () {
         var t = Math.max(0, Math.min(1, ((px-ax)*dx+(py-ay)*dy)/lenSq));
         var cx = ax + t * dx, cy = ay + t * dy;
         return Math.sqrt((px-cx)*(px-cx)+(py-cy)*(py-cy));
+    }
+
+    function _getNodeSnapshot() {
+        var head = _segMap.head;
+        var lFArm = _segMap.lFArm;
+        var rFArm = _segMap.rFArm;
+        var lShin = _segMap.lShin;
+        var rShin = _segMap.rShin;
+        var torso = _segMap.torso;
+        var rThigh = _segMap.rThigh;
+
+        var pelvisX = ((torso ? torso.px : W * 0.5) + (rThigh ? rThigh.px : W * 0.5)) / 2;
+        var pelvisY = ((torso ? torso.py : H * 0.6) + (rThigh ? rThigh.px != null ? rThigh.py : H * 0.6 : H * 0.6)) / 2;
+
+        return {
+            head: head ? { x: (head.px + head.ex) / 2, y: (head.py + head.ey) / 2 } : null,
+            leftHand: lFArm ? { x: lFArm.ex, y: lFArm.ey } : null,
+            rightHand: rFArm ? { x: rFArm.ex, y: rFArm.ey } : null,
+            leftKnee: lShin ? { x: lShin.ex, y: lShin.ey } : null,
+            rightKnee: rShin ? { x: rShin.ex, y: rShin.ey } : null,
+            pelvis: { x: pelvisX, y: pelvisY },
+            torso: torso ? { x: torso.px, y: torso.py, ex: torso.ex, ey: torso.ey } : null
+        };
+    }
+
+    function _evaluatePoseResult() {
+        var nodes = _getNodeSnapshot();
+        var head = nodes.head || { x: W * 0.5, y: H * 0.3 };
+        var leftHand = nodes.leftHand || { x: W * 0.45, y: H * 0.45 };
+        var rightHand = nodes.rightHand || { x: W * 0.55, y: H * 0.45 };
+        var leftKnee = nodes.leftKnee || { x: W * 0.45, y: FLOOR_Y };
+        var rightKnee = nodes.rightKnee || { x: W * 0.55, y: FLOOR_Y };
+        var pelvis = nodes.pelvis || { x: W * 0.5, y: H * 0.55 };
+        var kneeNearFloorThreshold = Math.max(18, H * 0.035);
+        var torsoTiltThreshold = Math.max(42, W * 0.12);
+
+        var bothKneesNearFloor = Math.abs(FLOOR_Y - leftKnee.y) <= kneeNearFloorThreshold &&
+            Math.abs(FLOOR_Y - rightKnee.y) <= kneeNearFloorThreshold;
+        var handsAboveHead = leftHand.y <= head.y && rightHand.y <= head.y;
+        var torsoTwisted = Math.abs(head.x - pelvis.x) > torsoTiltThreshold;
+        var headBelowPelvis = head.y >= pelvis.y;
+
+        if (headBelowPelvis && bothKneesNearFloor) {
+            return {
+                key: 'kowtow',
+                tag: '至诚磕头，万事顺遂',
+                quote: '诚心跪拜，霉运清零，财运福气双双到',
+                nodes: nodes
+            };
+        }
+
+        if (handsAboveHead) {
+            return {
+                key: 'wild',
+                tag: '拳脚拜年，百无禁忌',
+                quote: '不走寻常拜年路，自在逍遥无烦恼',
+                nodes: nodes
+            };
+        }
+
+        if (torsoTwisted) {
+            return {
+                key: 'tilted',
+                tag: '歪门邪道，好运绕道',
+                quote: '姿势不正福气偏，新一年主打随性自由',
+                nodes: nodes
+            };
+        }
+
+        return {
+            key: 'formal',
+            tag: '规规矩矩，岁岁平安',
+            quote: '礼数周全，神明偏爱，全年顺风顺水',
+            nodes: nodes
+        };
     }
 
     /* ====== 绘制 ====== */
@@ -608,6 +686,66 @@ var StickmanScene = (function () {
         ctx.restore();
     }
 
+    function _wrapPosterText(ctx, text, maxWidth) {
+        var chars = String(text || '').split('');
+        var lines = [];
+        var current = '';
+        for (var i = 0; i < chars.length; i++) {
+            var next = current + chars[i];
+            if (current && ctx.measureText(next).width > maxWidth) {
+                lines.push(current);
+                current = chars[i];
+            } else {
+                current = next;
+            }
+        }
+        if (current) lines.push(current);
+        return lines;
+    }
+
+    function _drawNeonText(ctx, text, x, y, size, fill, glow) {
+        ctx.save();
+        ctx.font = size + 'px "PoxiaoPixel"';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineJoin = 'round';
+        ctx.shadowColor = glow || fill || '#00f0ff';
+        ctx.shadowBlur = Math.max(8, Math.round(size * 0.45));
+        ctx.lineWidth = Math.max(3, Math.round(size * 0.18));
+        ctx.strokeStyle = '#170b2d';
+        ctx.strokeText(text, x, y);
+        ctx.fillStyle = fill || '#fff2c1';
+        ctx.fillText(text, x, y);
+        ctx.restore();
+    }
+
+    function _drawResultPosterText(ctx, w, h) {
+        var meta = _resultMeta || _evaluatePoseResult();
+        var tag = meta.tag;
+        var quote = meta.quote;
+        var cardW = Math.min(w * 0.72, 320);
+        var cardX = w / 2 - cardW / 2;
+        var cardY = h * 0.12;
+
+        Draw.drawPanel(ctx, cardX, cardY, cardW, 118, 'rgba(35,18,68,0.92)', Draw.THEME.gold, Draw.THEME.pink, Draw.THEME.ink);
+        _drawNeonText(ctx, tag, w / 2, cardY + 28, 18, '#ffea7a', '#ff58b3');
+
+        ctx.save();
+        ctx.font = '14px "PoxiaoPixel"';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 3;
+        var lines = _wrapPosterText(ctx, quote, cardW - 28);
+        for (var i = 0; i < lines.length; i++) {
+            ctx.strokeStyle = '#170b2d';
+            ctx.strokeText(lines[i], w / 2, cardY + 58 + i * 20);
+            ctx.fillStyle = '#7cf7ff';
+            ctx.fillText(lines[i], w / 2, cardY + 58 + i * 20);
+        }
+        ctx.restore();
+    }
+
     function _drawSelectionGlow(ctx, s) {
         if (!s) return;
         ctx.save();
@@ -728,6 +866,7 @@ var StickmanScene = (function () {
                 _timer -= dt;
                 if (_timer <= 0) {
                     _timer = 0;
+                    _resultMeta = _evaluatePoseResult();
                     _phase = 'result';
                     _selectedSeg = null;
                     _setupUI();
@@ -812,21 +951,7 @@ var StickmanScene = (function () {
             }
         } else if (_phase === 'result') {
             Draw.drawHalo(ctx, w/2, h*0.35, 140, Draw.THEME.gold, 0.18);
-            ctx.save();
-            ctx.translate(w/2, h*0.15);
-            ctx.rotate(-0.08);
-            var titleW = 260, titleH = 60;
-            UI.drawRoundedRect(ctx, -titleW / 2, -titleH / 2, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
-            UI.drawTitle(ctx, '新年快乐', 0, 2, 28, Draw.THEME.gold);
-            ctx.fillStyle = '#fff2c1';
-            ctx.font = '15px "PoxiaoPixel"';
-            ctx.textAlign = 'center';
-            ctx.lineJoin = 'round';
-            ctx.lineWidth = 3;
-            ctx.strokeStyle = '#24113f';
-            ctx.strokeText('大吉大利 · 岁岁平安', 0, 46);
-            ctx.fillText('大吉大利 · 岁岁平安', 0, 46);
-            ctx.restore();
+            _drawResultPosterText(ctx, w, h);
         }
 
         UI.drawButtons(ctx);
@@ -840,7 +965,8 @@ var StickmanScene = (function () {
         try {
             var url = Engine.getCanvas().toDataURL('image/png');
             var a = document.createElement('a');
-            a.href = url; a.download = '新年拜年.png';
+            var fileName = ((_resultMeta && _resultMeta.key) || 'new-year') + '-poster.png';
+            a.href = url; a.download = fileName;
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
         } catch (e) { alert('保存失败，请截图保存吧~'); }
         _setupUI();
