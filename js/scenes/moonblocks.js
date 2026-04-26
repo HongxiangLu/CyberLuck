@@ -28,12 +28,14 @@ var MoonBlocksScene = (function () {
     var _stickTimers = [];
     var _fortuneResult = null;
     var _fortunes = [
-        '[Status: Bug Free] 事业签：你的每一行代码都被神明加密，永不报错。',
-        '[Status: Cache Cleared] 转运签：旧缓存已退散，新的好运正在热更新。',
-        '[Status: Flow Running] 财运签：你投入的每一点念力，都会在意外之处回本。',
-        '[Status: Ship It] 项目签：卡住你的不是命，是还没点下那次确认启动。',
-        '[Status: Divine Merge] 感情签：心意终会合流，只差一次真诚提交。',
-        '[Status: Momentum++ ] 机缘签：本周会有一个看似随手的选择，悄悄改变走向。'
+        '[事业·上上签] 你的每一行代码都被神明加密，永不报错。',
+        '[财运·上吉签] 财神节点已接入，你投入的每一点念力，都会在意外之处回本。',
+        '[机缘·中吉签] 命运齿轮转动，本周会有一个看似随手的选择，悄悄改变走向。',
+        '[感情·上上签] 桃花协议已签发，心意终会合流，只差一次真诚的提交。',
+        '[健康·上吉签] 生命值已被天庭锁定，旧疾退散，平安顺遂。',
+        '[项目·中平签] 卡住你的不是命，是还没点下那次确认启动，勇敢部署吧。',
+        '[除业·大吉签] 业障与旧缓存一并退散，你的赛博气场焕然一新。',
+        '[护身·上上签] 赛博佛光护体，百邪不侵，诸事皆宜。'
     ];
 
     var results = {
@@ -89,8 +91,8 @@ var MoonBlocksScene = (function () {
             '<div class="fortune-shell">' +
                 '<button class="fortune-back" type="button">返回</button>' +
                 '<div class="fortune-panel">' +
-                    '<div class="fortune-title">赛博灵签</div>' +
-                    '<div class="fortune-rule">正在建立神明链路... 请在脑内同步参数：姓名/标的物/诉求，确认后点击抽签</div>' +
+                    '<div class="fortune-title">今日神意签</div>' +
+                    '<div class="fortune-rule">正在链接天庭主机... 请在灵识中同步参数：姓名/所求，确认后抽取本命神签</div>' +
                     '<div class="fortune-core">' +
                         '<div class="fortune-tube-wrap">' +
                             '<div class="fortune-tube-glow"></div>' +
@@ -176,7 +178,7 @@ var MoonBlocksScene = (function () {
         _stickState = 'idle';
         if (!_dom) return;
         _clearStickTimers();
-        _dom.rule.textContent = '正在建立神明链路... 请在脑内同步参数：姓名/标的物/诉求，确认后点击抽签';
+        _dom.rule.textContent = '正在链接天庭主机... 请在灵识中同步参数：姓名/所求，确认后抽取本命神签';
         _dom.primary.disabled = false;
         _dom.secondary.disabled = false;
         _dom.tubeWrap.classList.remove('is-shaking');
@@ -189,7 +191,7 @@ var MoonBlocksScene = (function () {
         _stickState = 'shaking';
         _dom.primary.disabled = true;
         _dom.secondary.disabled = true;
-        _dom.rule.textContent = '神明链路已握手，正在读取灵签缓存...';
+        _dom.rule.textContent = '香火数据已上传，神明正在下发灵签...';
         _dom.tubeWrap.classList.remove('is-shaking');
         _dom.stick.classList.remove('is-rising');
         void _dom.tubeWrap.offsetWidth;
@@ -201,7 +203,7 @@ var MoonBlocksScene = (function () {
             _stickState = 'revealing';
             _dom.tubeWrap.classList.remove('is-shaking');
             _dom.stick.classList.add('is-rising');
-            _dom.rule.textContent = '签文已出列，正在解析神意字段...';
+            _dom.rule.textContent = '灵签已抽出，正在转译天庭谕旨...';
             Engine.addFloatingText(Engine.width() / 2, Engine.height() * 0.48, 'SIGNAL', '#ffd84c', 20);
         }, 1500));
 
