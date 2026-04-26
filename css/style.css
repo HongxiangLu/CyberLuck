@@ -232,7 +232,7 @@ html, body {
 
 .fortune-shell {
     position: relative;
-    width: min(92vw, 420px);
+    width: min(92vw, 430px);
     isolation: isolate;
 }
 
@@ -240,14 +240,40 @@ html, body {
     position: relative;
     z-index: 1;
     background:
-        linear-gradient(180deg, rgba(20, 12, 34, 0.98), rgba(10, 8, 22, 0.98)),
+        linear-gradient(180deg, rgba(23, 14, 39, 0.98), rgba(9, 8, 20, 0.99)),
+        repeating-linear-gradient(
+            0deg,
+            rgba(255, 255, 255, 0.02) 0 2px,
+            rgba(255, 255, 255, 0) 2px 6px
+        ),
         #120b1f;
-    border: 2px solid #ff58b3;
+    border: 4px solid #ff58b3;
     box-shadow:
-        0 0 0 2px rgba(17, 6, 26, 0.95) inset,
-        0 0 16px rgba(255, 88, 179, 0.35),
-        0 0 32px rgba(99, 239, 255, 0.15);
-    padding: 60px 22px 24px;
+        0 0 0 4px #180b27 inset,
+        0 0 0 8px rgba(99, 239, 255, 0.12) inset,
+        8px 8px 0 rgba(10, 8, 20, 0.95),
+        0 0 18px rgba(255, 88, 179, 0.26);
+    padding: 70px 24px 24px;
+}
+
+.fortune-panel::before,
+.fortune-panel::after {
+    content: "";
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: #63efff;
+    box-shadow: 0 0 10px rgba(99, 239, 255, 0.45);
+}
+
+.fortune-panel::before {
+    left: 12px;
+    top: 12px;
+}
+
+.fortune-panel::after {
+    right: 12px;
+    bottom: 12px;
 }
 
 .fortune-back {
@@ -255,33 +281,57 @@ html, body {
     left: 0;
     top: -6px;
     z-index: 3;
-    min-width: 84px;
-    height: 40px;
-    border: 2px solid rgba(99, 239, 255, 0.5);
-    background: rgba(12, 14, 26, 0.96);
+    min-width: 92px;
+    height: 42px;
+    border: 3px solid #63efff;
+    background: #100d1d;
     color: #fff2c1;
     font: 15px "PoxiaoPixel", sans-serif;
-    box-shadow: 0 0 12px rgba(99, 239, 255, 0.18);
+    box-shadow:
+        0 0 0 3px #180b27 inset,
+        4px 4px 0 rgba(10, 8, 20, 0.9),
+        0 0 12px rgba(99, 239, 255, 0.2);
 }
 
 .fortune-title {
-    margin-bottom: 14px;
+    margin: 0 auto 16px;
+    width: fit-content;
+    padding: 10px 18px 8px;
+    border: 3px solid #ff58b3;
+    background:
+        linear-gradient(180deg, rgba(86, 10, 49, 0.96), rgba(32, 7, 22, 0.98)),
+        #2a0d1d;
     color: #ffd84c;
     text-align: center;
     font-size: 26px;
     letter-spacing: 0.08em;
+    box-shadow:
+        0 0 0 3px #180b27 inset,
+        4px 4px 0 rgba(10, 8, 20, 0.92);
     text-shadow:
         0 0 8px rgba(255, 216, 76, 0.8),
         0 0 18px rgba(255, 88, 179, 0.28);
 }
 
 .fortune-rule {
-    min-height: 72px;
+    min-height: 86px;
+    padding: 14px 14px 12px;
+    border: 3px solid #2a6280;
+    background:
+        repeating-linear-gradient(
+            180deg,
+            rgba(99, 239, 255, 0.06) 0 2px,
+            rgba(99, 239, 255, 0) 2px 8px
+        ),
+        #0f1322;
     color: #63efff;
     text-align: center;
-    line-height: 1.75;
+    line-height: 1.8;
     font-size: 14px;
-    text-shadow: 0 0 8px rgba(99, 239, 255, 0.2);
+    box-shadow:
+        0 0 0 3px #180b27 inset,
+        0 0 12px rgba(99, 239, 255, 0.14);
+    text-shadow: 0 0 8px rgba(99, 239, 255, 0.18);
 }
 
 .fortune-core {
@@ -289,13 +339,29 @@ html, body {
     justify-content: center;
     align-items: center;
     min-height: 260px;
-    margin: 10px 0 18px;
+    margin: 14px 0 18px;
+    border: 4px solid #63efff;
+    background:
+        linear-gradient(180deg, rgba(14, 10, 31, 0.98), rgba(8, 6, 18, 0.98)),
+        repeating-linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0.03) 0 1px,
+            rgba(255, 255, 255, 0) 1px 28px
+        ),
+        repeating-linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.03) 0 1px,
+            rgba(255, 255, 255, 0) 1px 28px
+        );
+    box-shadow:
+        0 0 0 4px #180b27 inset,
+        0 0 16px rgba(99, 239, 255, 0.18);
 }
 
 .fortune-tube-wrap {
     position: relative;
-    width: 160px;
-    height: 220px;
+    width: 172px;
+    height: 228px;
 }
 
 .fortune-tube-wrap.is-shaking {
@@ -312,16 +378,17 @@ html, body {
 .fortune-stick {
     position: absolute;
     left: 50%;
-    top: 46px;
-    width: 26px;
-    height: 124px;
+    top: 42px;
+    width: 30px;
+    height: 132px;
     transform: translateX(-50%) translateY(76px);
     background:
-        linear-gradient(180deg, #ffefae 0%, #ffd84c 25%, #ff9f50 60%, #ff58b3 100%);
-    border: 2px solid #fff2c1;
+        linear-gradient(180deg, #ffefae 0%, #ffd84c 32%, #ff9f50 68%, #ff58b3 100%);
+    border: 3px solid #fff2c1;
     box-shadow:
         0 0 10px rgba(255, 216, 76, 0.45),
-        0 0 18px rgba(255, 88, 179, 0.2);
+        0 0 18px rgba(255, 88, 179, 0.2),
+        0 0 0 3px rgba(46, 15, 29, 0.95) inset;
     opacity: 0.12;
     z-index: 1;
 }
@@ -344,9 +411,9 @@ html, body {
 .fortune-tube {
     position: absolute;
     left: 50%;
-    bottom: 8px;
-    width: 130px;
-    height: 176px;
+    bottom: 10px;
+    width: 138px;
+    height: 184px;
     transform: translateX(-50%);
     z-index: 2;
 }
@@ -361,29 +428,28 @@ html, body {
 
 .fortune-tube-top {
     top: 0;
-    width: 132px;
-    height: 28px;
-    border: 2px solid #ff58b3;
+    width: 138px;
+    height: 24px;
+    border: 3px solid #ff58b3;
     background:
-        radial-gradient(circle at 50% 35%, rgba(255, 242, 193, 0.25), rgba(255, 242, 193, 0) 58%),
-        linear-gradient(180deg, #59132f, #220916);
+        linear-gradient(180deg, #7d1d45, #300b1d);
     box-shadow:
         0 0 14px rgba(255, 88, 179, 0.35),
-        0 0 0 2px rgba(15, 8, 22, 0.9) inset;
-    border-radius: 50% / 60%;
+        0 0 0 3px rgba(15, 8, 22, 0.9) inset;
+    clip-path: polygon(8% 0, 92% 0, 100% 28%, 100% 72%, 92% 100%, 8% 100%, 0 72%, 0 28%);
 }
 
 .fortune-tube-body {
-    top: 14px;
-    width: 114px;
+    top: 18px;
+    width: 118px;
     height: 138px;
     background:
-        linear-gradient(90deg, #3d0e1f 0%, #6d1737 20%, #8f2447 50%, #5a1331 80%, #2c0a18 100%);
-    border-left: 2px solid #ff58b3;
-    border-right: 2px solid #ff58b3;
+        linear-gradient(90deg, #3d0e1f 0%, #5e1432 16%, #922651 50%, #5e1432 84%, #2c0a18 100%);
+    border: 3px solid #ff58b3;
     box-shadow:
         0 0 18px rgba(255, 88, 179, 0.28),
-        0 0 0 2px rgba(15, 8, 22, 0.9) inset;
+        0 0 0 3px rgba(15, 8, 22, 0.9) inset;
+    clip-path: polygon(6% 0, 94% 0, 94% 100%, 6% 100%);
 }
 
 .fortune-tube-body::before,
@@ -406,16 +472,16 @@ html, body {
 
 .fortune-tube-base {
     bottom: 0;
-    width: 124px;
-    height: 36px;
-    border: 2px solid #63efff;
+    width: 134px;
+    height: 30px;
+    border: 3px solid #63efff;
     background:
         linear-gradient(180deg, #301022, #160b1b),
         #160b1b;
     box-shadow:
         0 0 16px rgba(99, 239, 255, 0.28),
-        0 0 0 2px rgba(15, 8, 22, 0.9) inset;
-    border-radius: 50% / 58%;
+        0 0 0 3px rgba(15, 8, 22, 0.9) inset;
+    clip-path: polygon(10% 0, 90% 0, 100% 35%, 100% 65%, 90% 100%, 10% 100%, 0 65%, 0 35%);
 }
 
 .fortune-actions {
@@ -428,21 +494,34 @@ html, body {
 .fortune-secondary,
 .fortune-modal-cancel,
 .fortune-modal-confirm {
-    border: 2px solid #63efff;
+    border: 3px solid #63efff;
     background: #100d1d;
     color: #fff2c1;
     font: 15px "PoxiaoPixel", sans-serif;
-    padding: 14px 16px;
+    padding: 14px 16px 12px;
     box-shadow:
-        0 0 12px rgba(99, 239, 255, 0.2),
-        0 0 0 2px rgba(15, 8, 22, 0.92) inset;
+        0 0 0 3px #180b27 inset,
+        4px 4px 0 rgba(10, 8, 20, 0.92),
+        0 0 12px rgba(99, 239, 255, 0.12);
+    transition: transform 0.08s steps(2, end), box-shadow 0.08s steps(2, end);
+}
+
+.fortune-primary:active,
+.fortune-secondary:active,
+.fortune-modal-cancel:active,
+.fortune-modal-confirm:active {
+    transform: translate(4px, 4px);
+    box-shadow:
+        0 0 0 3px #180b27 inset,
+        0 0 8px rgba(99, 239, 255, 0.14);
 }
 
 .fortune-primary {
     border-color: #ff58b3;
     box-shadow:
-        0 0 14px rgba(255, 88, 179, 0.28),
-        0 0 0 2px rgba(15, 8, 22, 0.92) inset;
+        0 0 0 3px #180b27 inset,
+        4px 4px 0 rgba(10, 8, 20, 0.92),
+        0 0 14px rgba(255, 88, 179, 0.22);
 }
 
 .fortune-primary:disabled,
@@ -473,10 +552,11 @@ html, body {
     background:
         linear-gradient(180deg, rgba(17, 13, 30, 0.98), rgba(10, 9, 20, 0.98)),
         #120b1f;
-    border: 2px solid #63efff;
+    border: 4px solid #63efff;
     box-shadow:
-        0 0 16px rgba(99, 239, 255, 0.22),
-        0 0 0 2px rgba(15, 8, 22, 0.92) inset;
+        0 0 0 4px #180b27 inset,
+        8px 8px 0 rgba(10, 8, 20, 0.95),
+        0 0 16px rgba(99, 239, 255, 0.16);
     padding: 20px 18px 18px;
 }
 
@@ -485,6 +565,9 @@ html, body {
     text-align: center;
     font-size: 20px;
     margin-bottom: 14px;
+    padding: 8px 12px 6px;
+    border: 3px solid #ff58b3;
+    background: linear-gradient(180deg, rgba(86, 10, 49, 0.96), rgba(32, 7, 22, 0.98));
     text-shadow: 0 0 8px rgba(255, 216, 76, 0.35);
 }
 
@@ -494,6 +577,15 @@ html, body {
     line-height: 1.8;
     font-size: 14px;
     min-height: 104px;
+    padding: 12px 10px;
+    border: 3px solid #2a6280;
+    background:
+        repeating-linear-gradient(
+            180deg,
+            rgba(99, 239, 255, 0.05) 0 2px,
+            rgba(99, 239, 255, 0) 2px 8px
+        ),
+        #0f1322;
 }
 
 .fortune-modal-actions {
