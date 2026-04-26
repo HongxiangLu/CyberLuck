@@ -33,6 +33,10 @@ var WorshipScene = (function () {
     var _imagesLoaded = false;
     var _worshipCost = 10;
     var _insufficientHintTimer = 0;
+    var _selectReactTimer = 0;
+    var _selectReactCooldown = 0;
+    var _selectReactMode = '';
+    var _selectReactLabel = '';
     var _posterState = 'idle';
     var _posterGeneratedUrl = '';
     var _posterBindingReady = false;
@@ -168,6 +172,175 @@ var WorshipScene = (function () {
         ctx.restore();
     }
 
+    function _getCanvasPoint(e) {
+        var canvas = Engine.getCanvas();
+        var rect = canvas.getBoundingClientRect();
+        var touch = e.touches ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : e);
+        if (!touch) return null;
+        return {
+            x: touch.clientX - rect.left,
+            y: touch.clientY - rect.top
+        };
+    }
+
+    function _getSelectGodMetrics(w, h) {
+        var bobY = Math.sin(_time * 2.5) * 5;
+        var cx = w / 2;
+        var cy = h * 0.33 + bobY;
+        var drawH = 240;
+        var drawW = 180;
+        var img = _godImages[gods[_selectedGod].name];
+        if (img && img.complete && img.naturalWidth && img.naturalHeight) {
+            drawW = drawH * (img.naturalWidth / img.naturalHeight);
+        }
+        return {
+            cx: cx,
+            cy: cy,
+            drawW: drawW,
+            drawH: drawH
+        };
+    }
+
+    function _isSelectGodHit(x, y) {
+        var m = _getSelectGodMetrics(Engine.width(), Engine.height());
+        return x >= m.cx - m.drawW / 2 && x <= m.cx + m.drawW / 2 &&
+            y >= m.cy - m.drawH / 2 && y <= m.cy + m.drawH / 2;
+    }
+
+    function _triggerSelectReaction(x, y) {
+        if (_selectReactCooldown > 0) return;
+        var god = gods[_selectedGod];
+        var m = _getSelectGodMetrics(Engine.width(), Engine.height());
+        var px = x || m.cx;
+        var py = y || m.cy;
+
+        _selectReactCooldown = 0.45;
+        _selectReactTimer = 1;
+        _selectReactMode = ['zhao', 'guan', 'bigan', 'fanli'][_selectedGod] || 'zhao';
+        Audio.playTap();
+        Device.tapVibrate();
+
+        if (_selectedGod === 0) {
+            _selectReactLabel = '财运暴击';
+            Engine.addGoldBurst(px, py, {
+                count: 26,
+                speed: 3.6,
+                ringRadius: 34,
+                upwardLift: 0.3,
+                pixel: true,
+                flashCoreRadius: 12,
+                flashHaloRadius: 20
+            });
+            Engine.addFloatingText(m.cx, m.cy - 96, '财运暴击', '#ffd84c', 22);
+        } else if (_selectedGod === 1) {
+            _selectReactLabel = '正气开刃';
+            Engine.addParticle(px, py, '#56ff9f', {
+                count: 18,
+                speed: 3.2,
+                radius: 3,
+                decay: 0.03
+            });
+            Engine.addFloatingText(m.cx, m.cy - 96, '正气开刃', '#56ff9f', 22);
+        } else if (_selectedGod === 2) {
+            _selectReactLabel = '心灯护体';
+            Engine.addParticle(px, py, '#c07cff', {
+                count: 16,
+                speed: 2.5,
+                radius: 3,
+                decay: 0.024
+            });
+            Engine.addFloatingText(m.cx, m.cy - 96, '心灯护体', '#dba8ff', 22);
+        } else {
+            _selectReactLabel = '机缘加载';
+            Engine.addParticle(px, py, '#63efff', {
+                count: 22,
+                speed: 3.1,
+                radius: 2,
+                decay: 0.028
+            });
+            Engine.addFloatingText(m.cx, m.cy - 96, '机缘加载', '#63efff', 22);
+        }
+    }
+
+    function _renderSelectReaction(ctx, w, h, god) {
+        if (_selectReactTimer <= 0) return;
+        var m = _getSelectGodMetrics(w, h);
+        var t = _selectReactTimer;
+        var pulse = 1 - t;
+        var i;
+
+        ctx.save();
+        ctx.translate(m.cx, m.cy);
+
+        if (_selectReactMode === 'zhao') {
+            for (i = 0; i < 8; i++) {
+                var a = pulse * 6 + i * Math.PI / 4;
+                var r = 66 + Math.sin(_time * 5 + i) * 8;
+                var sx = Math.cos(a) * r;
+                var sy = Math.sin(a) * (r * 0.58);
+                ctx.fillStyle = 'rgba(255,216,76,' + (0.18 + t * 0.42) + ')';
+                ctx.fillRect(Math.round(sx - 6), Math.round(sy - 6), 12, 12);
+            }
+            ctx.strokeStyle = 'rgba(255,216,76,' + (0.2 + t * 0.5) + ')';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(-58 - pulse * 16, -74 - pulse * 8, 116 + pulse * 32, 148 + pulse * 16);
+        } else if (_selectReactMode === 'guan') {
+            ctx.strokeStyle = 'rgba(86,255,159,' + (0.22 + t * 0.55) + ')';
+            ctx.lineWidth = 4;
+            for (i = 0; i < 3; i++) {
+                ctx.beginPath();
+                ctx.arc(0, 0, 72 + i * 14 + pulse * 18, -0.85 + i * 0.15, 0.25 + i * 0.15);
+                ctx.stroke();
+            }
+            ctx.beginPath();
+            ctx.moveTo(-86 + pulse * 18, 58);
+            ctx.lineTo(94 - pulse * 16, -48);
+            ctx.strokeStyle = 'rgba(255,242,193,' + (0.18 + t * 0.65) + ')';
+            ctx.lineWidth = 5;
+            ctx.stroke();
+        } else if (_selectReactMode === 'bigan') {
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 84 + pulse * 10, 110 + pulse * 10, 0, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(192,124,255,' + (0.18 + t * 0.48) + ')';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+            for (i = 0; i < 6; i++) {
+                var starA = i * Math.PI / 3 + pulse * 2;
+                var starX = Math.cos(starA) * 74;
+                var starY = Math.sin(starA) * 52;
+                ctx.fillStyle = 'rgba(255,242,193,' + (0.18 + t * 0.55) + ')';
+                ctx.fillRect(Math.round(starX), Math.round(starY), 4, 4);
+                ctx.fillRect(Math.round(starX - 4), Math.round(starY + 4), 4, 4);
+            }
+        } else if (_selectReactMode === 'fanli') {
+            for (i = 0; i < 5; i++) {
+                var yOff = -70 + i * 34 + Math.sin(_time * 5 + i) * 4;
+                ctx.fillStyle = 'rgba(99,239,255,' + (0.14 + t * 0.42) + ')';
+                ctx.fillRect(-94 + pulse * 18, yOff, 188 - pulse * 36, 6);
+            }
+            for (i = 0; i < 7; i++) {
+                var dotA = pulse * 7 + i * Math.PI / 3.5;
+                ctx.fillStyle = 'rgba(255,216,76,' + (0.16 + t * 0.42) + ')';
+                ctx.beginPath();
+                ctx.arc(Math.cos(dotA) * 82, Math.sin(dotA * 1.2) * 44, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        ctx.restore();
+
+        ctx.save();
+        ctx.font = '12px "PoxiaoPixel"';
+        ctx.textAlign = 'center';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#24113f';
+        ctx.strokeText(_selectReactLabel, m.cx, m.cy + m.drawH / 2 + 14);
+        ctx.fillStyle = god.color;
+        ctx.fillText(_selectReactLabel, m.cx, m.cy + m.drawH / 2 + 14);
+        ctx.restore();
+    }
+
     var gods = [
         {
             name: '赵公明·正财神',
@@ -235,6 +408,10 @@ var WorshipScene = (function () {
         _time = 0;
         _motionRequested = false;
         _insufficientHintTimer = 0;
+        _selectReactTimer = 0;
+        _selectReactCooldown = 0;
+        _selectReactMode = '';
+        _selectReactLabel = '';
         _posterState = 'idle';
         _posterGeneratedUrl = '';
         UI.clearButtons();
@@ -410,6 +587,13 @@ var WorshipScene = (function () {
         var canvas = Engine.getCanvas();
 
         _touchStartHandler = function (e) {
+            if (_phase === 'select') {
+                var point = _getCanvasPoint(e);
+                if (point && _isSelectGodHit(point.x, point.y)) {
+                    _triggerSelectReaction(point.x, point.y);
+                }
+                return;
+            }
             if (_phase === 'prepare' || _phase === 'bowing') {
                 if (e.touches) {
                     _checkTouchZones(e.touches);
@@ -607,6 +791,8 @@ var WorshipScene = (function () {
     function render(ctx, w, h) {
         _time += 0.016;
         if (_insufficientHintTimer > 0) _insufficientHintTimer -= 0.016;
+        if (_selectReactTimer > 0) _selectReactTimer -= 0.03;
+        if (_selectReactCooldown > 0) _selectReactCooldown -= 0.016;
 
         var god = gods[_selectedGod];
         Draw.drawBackground(ctx, w, h);
@@ -644,6 +830,7 @@ var WorshipScene = (function () {
         var bobY = Math.sin(_time * 2.5) * 5; // 自然呼吸悬浮
         Draw.drawHalo(ctx, w / 2, h * 0.33 + bobY, 100, god.color, 0.2);
         god.draw(ctx, w / 2, h * 0.33 + bobY, 1.2);
+        _renderSelectReaction(ctx, w, h, god);
         
         // 财神简介
         ctx.save();
@@ -666,7 +853,7 @@ var WorshipScene = (function () {
         ctx.restore();
 
         // 底部提示
-        UI.drawSubtitle(ctx, '请择一位神明，开启你的专属赛博祈福', w / 2, h * 0.88, 14, Draw.THEME.cyan);
+        UI.drawSubtitle(ctx, '请择一位神明，点一下看看他的脾气', w / 2, h * 0.88, 14, Draw.THEME.cyan);
         UI.drawSubtitle(ctx, '每次参拜消耗 ' + _worshipCost + ' 功德', w / 2, h * 0.92, 12, Draw.THEME.gold);
     }
 
