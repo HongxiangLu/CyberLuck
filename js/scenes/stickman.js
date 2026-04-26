@@ -448,13 +448,18 @@ var StickmanScene = (function () {
         var width = opts.width || (s.thick + 12);
         var tailWidth = opts.tailWidth || width * 0.82;
         var border = opts.border || '#150a26';
-        var fill = opts.fill || '#5b1d36';
+        var fill = opts.fill || '#6d1f35';
         var trim = opts.trim || '#ffd75e';
-        var highlight = opts.highlight || _mixColor(fill, '#ffffff', 0.16);
-        var innerInset = Math.max(3, Math.round(width * 0.16));
+        var highlight = opts.highlight || _mixColor(fill, '#ffffff', 0.18);
+        var shadow = opts.shadow || _mixColor(fill, '#12091f', 0.48);
+        var neonA = opts.neonA || '#00f0ff';
+        var neonB = opts.neonB || '#ff4fb8';
+        var innerInset = Math.max(4, Math.round(width * 0.16));
         var startFlare = opts.startFlare || 1.12;
         var endFlare = opts.endFlare || 0.9;
         var notch = Math.max(4, width * 0.16);
+        var circuitry = opts.circuitry !== false;
+        var stripeCount = opts.stripeCount || 2;
 
         ctx.save();
         ctx.translate(s.px, s.py);
@@ -484,6 +489,8 @@ var StickmanScene = (function () {
 
         ctx.fillStyle = highlight;
         ctx.fillRect(innerInset, -width * 0.26, Math.max(8, len - innerInset * 2), 2);
+        ctx.fillStyle = shadow;
+        ctx.fillRect(innerInset, width * 0.18, Math.max(8, len - innerInset * 2), 2);
 
         ctx.strokeStyle = trim;
         ctx.lineWidth = 2;
@@ -495,6 +502,37 @@ var StickmanScene = (function () {
         ctx.moveTo(4, width * 0.26);
         ctx.lineTo(len - 4, tailWidth * 0.2);
         ctx.stroke();
+
+        for (var si = 0; si < stripeCount; si++) {
+            var ratio = (si + 1) / (stripeCount + 1);
+            var sx = len * (0.16 + ratio * 0.58);
+            ctx.fillStyle = trim;
+            ctx.fillRect(sx, -width * 0.18, 3, width * 0.36);
+        }
+
+        if (circuitry) {
+            ctx.strokeStyle = neonA;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(len * 0.18, 0);
+            ctx.lineTo(len * 0.44, 0);
+            ctx.lineTo(len * 0.58, -width * 0.12);
+            ctx.lineTo(len * 0.72, -width * 0.12);
+            ctx.stroke();
+
+            ctx.strokeStyle = neonB;
+            ctx.beginPath();
+            ctx.moveTo(len * 0.22, width * 0.08);
+            ctx.lineTo(len * 0.4, width * 0.08);
+            ctx.lineTo(len * 0.52, width * 0.2);
+            ctx.lineTo(len * 0.72, width * 0.2);
+            ctx.stroke();
+
+            ctx.fillStyle = neonA;
+            ctx.fillRect(len * 0.43, -1.5, 4, 4);
+            ctx.fillStyle = neonB;
+            ctx.fillRect(len * 0.5, width * 0.18 - 1, 4, 4);
+        }
 
         if (opts.cutoutCount) {
             ctx.fillStyle = opts.cutout || '#ffefb3';
@@ -511,19 +549,32 @@ var StickmanScene = (function () {
     }
 
     function _drawPuppetJoint(ctx, x, y, size) {
-        var r = Math.max(5, size || 7);
+        var r = Math.max(6, size || 8);
         ctx.save();
+        ctx.shadowColor = '#00f0ff';
+        ctx.shadowBlur = 10;
         ctx.beginPath();
-        ctx.arc(x, y, r + 2, 0, Math.PI * 2);
+        ctx.arc(x, y, r + 4, 0, Math.PI * 2);
         ctx.fillStyle = '#150a26';
         ctx.fill();
         ctx.beginPath();
         ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fillStyle = '#c68b2b';
+        ctx.fillStyle = '#1d1538';
+        ctx.fill();
+        for (var i = 0; i < 6; i++) {
+            var a = (Math.PI * 2 / 6) * i;
+            var gx = x + Math.cos(a) * (r + 1);
+            var gy = y + Math.sin(a) * (r + 1);
+            ctx.fillStyle = i % 2 ? '#ff4fb8' : '#00f0ff';
+            ctx.fillRect(Math.round(gx - 1.5), Math.round(gy - 1.5), 3, 3);
+        }
+        ctx.beginPath();
+        ctx.arc(x, y, r * 0.54, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffd75e';
         ctx.fill();
         ctx.beginPath();
-        ctx.arc(x - 1, y - 1, Math.max(2, r * 0.35), 0, Math.PI * 2);
-        ctx.fillStyle = '#fff3a6';
+        ctx.arc(x, y, r * 0.24, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff6b1';
         ctx.fill();
         ctx.restore();
     }
@@ -576,32 +627,39 @@ var StickmanScene = (function () {
 
         ctx.save();
         ctx.translate(hcx, hcy);
+        ctx.shadowColor = '#00f0ff';
+        ctx.shadowBlur = 8;
 
         ctx.beginPath();
-        ctx.ellipse(0, 0, 19, 22, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, 0, 21, 24, 0, 0, Math.PI * 2);
         ctx.fillStyle = '#150a26';
         ctx.fill();
         ctx.beginPath();
-        ctx.ellipse(0, 1, 14, 18, 0, 0, Math.PI * 2);
-        ctx.fillStyle = '#f4ddb1';
+        ctx.ellipse(0, 1, 16, 19, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#f3d7ae';
         ctx.fill();
 
         ctx.beginPath();
-        ctx.moveTo(-20, -10);
-        ctx.lineTo(0, -26);
-        ctx.lineTo(20, -10);
-        ctx.lineTo(18, -2);
-        ctx.lineTo(-18, -2);
+        ctx.moveTo(-22, -10);
+        ctx.lineTo(0, -28);
+        ctx.lineTo(22, -10);
+        ctx.lineTo(19, -1);
+        ctx.lineTo(-19, -1);
         ctx.closePath();
         ctx.fillStyle = '#7a1730';
         ctx.fill();
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(-14, -12, 4, 3);
+        ctx.fillRect(10, -12, 4, 3);
 
         ctx.fillStyle = '#ffd75e';
-        ctx.fillRect(-7, -16, 14, 3);
+        ctx.fillRect(-8, -18, 16, 4);
         ctx.beginPath();
         ctx.arc(-16, -6, 4, 0, Math.PI * 2);
         ctx.arc(16, -6, 4, 0, Math.PI * 2);
         ctx.fill();
+        ctx.fillStyle = '#ff4fb8';
+        ctx.fillRect(-3, -26, 6, 7);
 
         var eyeOffsetX = Math.round(sideX * 4);
         var eyeOffsetY = Math.round(sideY * 4);
@@ -610,9 +668,12 @@ var StickmanScene = (function () {
 
         ctx.fillStyle = '#150a26';
         ctx.beginPath();
-        ctx.arc(-4 + eyeOffsetX + faceShiftX, -3 + eyeOffsetY + faceShiftY, 1.8, 0, Math.PI * 2);
-        ctx.arc(4 + eyeOffsetX + faceShiftX, -3 + eyeOffsetY + faceShiftY, 1.8, 0, Math.PI * 2);
+        ctx.arc(-4 + eyeOffsetX + faceShiftX, -3 + eyeOffsetY + faceShiftY, 2.1, 0, Math.PI * 2);
+        ctx.arc(4 + eyeOffsetX + faceShiftX, -3 + eyeOffsetY + faceShiftY, 2.1, 0, Math.PI * 2);
         ctx.fill();
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(-7 + eyeOffsetX + faceShiftX, -7 + eyeOffsetY + faceShiftY, 6, 1.5);
+        ctx.fillRect(1 + eyeOffsetX + faceShiftX, -7 + eyeOffsetY + faceShiftY, 6, 1.5);
         ctx.beginPath();
         ctx.moveTo(-4 + faceShiftX, 5 + faceShiftY);
         ctx.quadraticCurveTo(0 + faceShiftX, 8 + faceShiftY, 4 + faceShiftX, 5 + faceShiftY);
@@ -630,6 +691,8 @@ var StickmanScene = (function () {
         ctx.fill();
         ctx.fillStyle = '#d7cbb5';
         ctx.fillRect(-6, 14, 12, 3);
+        ctx.fillStyle = '#ff4fb8';
+        ctx.fillRect(-3, 9, 6, 2);
 
         ctx.restore();
     }
@@ -645,6 +708,9 @@ var StickmanScene = (function () {
         ctx.translate(torso.px, torso.py);
         ctx.rotate(ang);
 
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(len * 0.18, -14, 4, 4);
+        ctx.fillRect(len * 0.64, 10, 4, 4);
         ctx.fillStyle = '#ffd75e';
         ctx.fillRect(len * 0.16, -4, Math.max(18, len * 0.46), 8);
         ctx.fillStyle = '#fff1a6';
@@ -655,6 +721,23 @@ var StickmanScene = (function () {
         ctx.fillRect(len * 0.68, -9, 4, 20);
         ctx.fillStyle = '#150a26';
         ctx.fillRect(len * 0.56, -14, 2, 28);
+
+        ctx.strokeStyle = '#00f0ff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(len * 0.14, 0);
+        ctx.lineTo(len * 0.28, 0);
+        ctx.lineTo(len * 0.28, 10);
+        ctx.lineTo(len * 0.42, 10);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#ff4fb8';
+        ctx.beginPath();
+        ctx.moveTo(len * 0.22, -10);
+        ctx.lineTo(len * 0.36, -10);
+        ctx.lineTo(len * 0.36, -18);
+        ctx.lineTo(len * 0.5, -18);
+        ctx.stroke();
 
         ctx.restore();
     }
@@ -667,6 +750,92 @@ var StickmanScene = (function () {
         ctx.ellipse(cx, y, 48 * (scale || 1), 12 * (scale || 1), 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
+    }
+
+    function _drawDataStream(ctx, x, y, h, colorA, colorB) {
+        ctx.save();
+        for (var i = 0; i < h; i += 10) {
+            ctx.fillStyle = (i / 10) % 2 === 0 ? colorA : colorB;
+            ctx.fillRect(x, y + i, 4, 6);
+        }
+        ctx.restore();
+    }
+
+    function _drawTempleBeacon(ctx, x, y, scale) {
+        var s = scale || 1;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.fillStyle = '#150a26';
+        ctx.fillRect(-14 * s, -56 * s, 28 * s, 80 * s);
+        ctx.fillStyle = '#2a184d';
+        ctx.fillRect(-10 * s, -52 * s, 20 * s, 72 * s);
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(-6 * s, -46 * s, 12 * s, 48 * s);
+        ctx.fillStyle = '#ff4fb8';
+        ctx.fillRect(-6 * s, 6 * s, 12 * s, 8 * s);
+        ctx.fillStyle = '#ffd75e';
+        ctx.fillRect(-16 * s, 20 * s, 32 * s, 8 * s);
+        ctx.restore();
+    }
+
+    function _drawCyberTempleBackdrop(ctx, w, h) {
+        var panelX = w * 0.11;
+        var panelY = h * 0.27;
+        var panelW = w * 0.78;
+        var panelH = h * 0.47;
+        var altarY = panelY + panelH * 0.78;
+
+        Draw.drawPanel(ctx, panelX, panelY, panelW, panelH, '#140d30', '#00f0ff', '#ff4fb8', '#0a0615');
+
+        ctx.fillStyle = '#221247';
+        ctx.fillRect(panelX + 12, panelY + 12, panelW - 24, panelH - 24);
+
+        for (var gx = panelX + 22; gx < panelX + panelW - 22; gx += 24) {
+            ctx.fillStyle = 'rgba(0, 240, 255, 0.18)';
+            ctx.fillRect(gx, panelY + 16, 2, panelH - 32);
+        }
+        for (var gy = panelY + 22; gy < panelY + panelH - 22; gy += 22) {
+            ctx.fillStyle = 'rgba(255, 79, 184, 0.14)';
+            ctx.fillRect(panelX + 16, gy, panelW - 32, 2);
+        }
+
+        ctx.fillStyle = '#10081d';
+        ctx.fillRect(w / 2 - 94, panelY + 44, 188, 156);
+        ctx.fillStyle = '#2b1550';
+        ctx.fillRect(w / 2 - 82, panelY + 56, 164, 132);
+
+        ctx.fillStyle = '#150a26';
+        ctx.fillRect(w / 2 - 44, panelY + 14, 88, 28);
+        ctx.fillStyle = '#ff4fb8';
+        ctx.fillRect(w / 2 - 38, panelY + 20, 76, 18);
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(w / 2 - 6, panelY + 20, 12, 18);
+
+        _drawTempleBeacon(ctx, panelX + 42, altarY - 30, 1);
+        _drawTempleBeacon(ctx, panelX + panelW - 42, altarY - 30, 1);
+        _drawDataStream(ctx, panelX + 44, panelY + 12, 84, '#00f0ff', '#ff4fb8');
+        _drawDataStream(ctx, panelX + panelW - 48, panelY + 12, 84, '#ff4fb8', '#00f0ff');
+
+        ctx.fillStyle = '#150a26';
+        ctx.fillRect(w / 2 - 110, altarY - 4, 220, 30);
+        ctx.fillStyle = '#392065';
+        ctx.fillRect(w / 2 - 98, altarY + 2, 196, 18);
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(w / 2 - 92, altarY + 2, 184, 4);
+        ctx.fillStyle = '#ff4fb8';
+        ctx.fillRect(w / 2 - 82, altarY + 12, 164, 4);
+
+        ctx.fillStyle = '#ffd75e';
+        ctx.fillRect(w / 2 - 60, altarY - 18, 120, 6);
+        ctx.fillStyle = '#fff2a0';
+        ctx.fillRect(w / 2 - 48, altarY - 24, 96, 4);
+
+        ctx.fillStyle = 'rgba(0, 240, 255, 0.14)';
+        ctx.fillRect(w / 2 - 150, panelY + 92, 26, 26);
+        ctx.fillRect(w / 2 + 124, panelY + 116, 20, 20);
+        ctx.fillStyle = 'rgba(255, 79, 184, 0.16)';
+        ctx.fillRect(w / 2 + 108, panelY + 72, 16, 16);
+        ctx.fillRect(w / 2 - 138, panelY + 136, 16, 16);
     }
 
     function _drawGuideCard(ctx, x, y, w, lines, accent) {
@@ -801,24 +970,24 @@ var StickmanScene = (function () {
 
     function _drawStickman(ctx) {
         var palette = {
-            robe: '#5b1d36',
+            robe: '#7a1f3f',
             robeDeep: '#150a26',
-            sleeve: '#6f2242',
+            sleeve: '#a42f58',
             skin: '#f4ddb1',
-            leg: '#2d173f',
-            legDeep: '#1d0d31'
+            leg: '#34165a',
+            legDeep: '#241040'
         };
 
         var limbStyles = {
-            lShin: { fill: palette.leg, width: 18, trim: '#b991ff', cutoutCount: 1 },
-            lThigh: { fill: palette.leg, width: 22, trim: '#b991ff', cutoutCount: 1 },
-            rThigh: { fill: palette.legDeep, width: 22, trim: '#9f6fff', cutoutCount: 1 },
-            rShin: { fill: palette.legDeep, width: 18, trim: '#9f6fff', cutoutCount: 1 },
-            torso: { fill: palette.robe, width: 30, tailWidth: 28, trim: '#ffd75e', cutoutCount: 2, highlight: '#8c3857' },
-            lUArm: { fill: palette.sleeve, width: 22, trim: '#ffd75e', cutoutCount: 1, startFlare: 1.2, endFlare: 1.08 },
-            rUArm: { fill: palette.sleeve, width: 22, trim: '#ffd75e', cutoutCount: 1, startFlare: 1.2, endFlare: 1.08 },
-            lFArm: { fill: palette.sleeve, width: 20, trim: '#ff9bc0', cutoutCount: 1, startFlare: 1.18, endFlare: 1.14 },
-            rFArm: { fill: palette.sleeve, width: 20, trim: '#ff9bc0', cutoutCount: 1, startFlare: 1.18, endFlare: 1.14 }
+            lShin: { fill: palette.leg, width: 20, trim: '#7cf7ff', cutoutCount: 1, neonA: '#00f0ff', neonB: '#b991ff' },
+            lThigh: { fill: palette.leg, width: 24, trim: '#7cf7ff', cutoutCount: 1, neonA: '#00f0ff', neonB: '#b991ff' },
+            rThigh: { fill: palette.legDeep, width: 24, trim: '#9f6fff', cutoutCount: 1, neonA: '#00f0ff', neonB: '#ff4fb8' },
+            rShin: { fill: palette.legDeep, width: 20, trim: '#9f6fff', cutoutCount: 1, neonA: '#00f0ff', neonB: '#ff4fb8' },
+            torso: { fill: palette.robe, width: 34, tailWidth: 32, trim: '#ffd75e', cutoutCount: 2, highlight: '#b54b70', shadow: '#2a0d20', neonA: '#00f0ff', neonB: '#ff4fb8', stripeCount: 3 },
+            lUArm: { fill: palette.sleeve, width: 24, trim: '#ffd75e', cutoutCount: 1, startFlare: 1.24, endFlare: 1.08, neonA: '#00f0ff', neonB: '#ff4fb8', stripeCount: 2 },
+            rUArm: { fill: palette.sleeve, width: 24, trim: '#ffd75e', cutoutCount: 1, startFlare: 1.24, endFlare: 1.08, neonA: '#00f0ff', neonB: '#ff4fb8', stripeCount: 2 },
+            lFArm: { fill: palette.sleeve, width: 22, trim: '#ff9bc0', cutoutCount: 1, startFlare: 1.18, endFlare: 1.16, neonA: '#00f0ff', neonB: '#ff4fb8', stripeCount: 2 },
+            rFArm: { fill: palette.sleeve, width: 22, trim: '#ff9bc0', cutoutCount: 1, startFlare: 1.18, endFlare: 1.16, neonA: '#00f0ff', neonB: '#ff4fb8', stripeCount: 2 }
         };
 
         _drawSleeveTrail(ctx, _segMap['lUArm'], _segMap['lFArm'], 'rgba(143, 44, 78, 0.58)');
@@ -881,15 +1050,25 @@ var StickmanScene = (function () {
         Draw.drawBackground(ctx, w, h);
         Draw.drawFrame(ctx, w, h);
         Draw.drawPanel(ctx, w * 0.08, h * 0.08, w * 0.84, h * 0.76, Draw.THEME.panelDark, Draw.THEME.cyan, Draw.THEME.pink, Draw.THEME.ink);
+        _drawCyberTempleBackdrop(ctx, w, h);
 
-        // 装饰灯笼
-        ctx.fillStyle = 'rgba(255,88,179,0.18)';
+        // 顶部能量灯
+        ctx.fillStyle = 'rgba(255,88,179,0.2)';
         ctx.beginPath(); ctx.arc(w*0.1, h*0.08, 35, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(w*0.9, h*0.08, 35, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(w * 0.1 - 4, h * 0.08 - 28, 8, 12);
+        ctx.fillRect(w * 0.9 - 4, h * 0.08 - 28, 8, 12);
 
         // 地面
-        ctx.fillStyle = Draw.THEME.pink;
+        ctx.fillStyle = '#ff007f';
         ctx.fillRect(0, FLOOR_Y, w, h - FLOOR_Y);
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(0, FLOOR_Y, w, 6);
+        ctx.fillStyle = '#6b124f';
+        for (var gx = 0; gx < w; gx += 28) {
+            ctx.fillRect(gx, FLOOR_Y + 18, 12, 3);
+        }
         ctx.strokeStyle = Draw.THEME.ink;
         ctx.lineWidth = 4;
         ctx.beginPath(); ctx.moveTo(0, FLOOR_Y); ctx.lineTo(w, FLOOR_Y); ctx.stroke();
