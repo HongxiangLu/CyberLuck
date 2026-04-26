@@ -96,12 +96,8 @@ var MoonBlocksScene = (function () {
                     '<div class="fortune-core">' +
                         '<div class="fortune-tube-wrap">' +
                             '<div class="fortune-tube-glow"></div>' +
-                            '<div class="fortune-stick" aria-hidden="true"></div>' +
-                            '<div class="fortune-tube">' +
-                                '<div class="fortune-tube-top"></div>' +
-                                '<div class="fortune-tube-body"></div>' +
-                                '<div class="fortune-tube-base"></div>' +
-                            '</div>' +
+                            '<img class="fortune-stick" src="images/fortune/slip.png" aria-hidden="true" />' +
+                            '<img class="fortune-tube" src="images/fortune/tube.png" />' +
                         '</div>' +
                     '</div>' +
                     '<div class="fortune-actions">' +

@@ -47,3 +47,4 @@ python -m http.server 8000
 - 木鱼玩法新增可见的“切换木鱼”按钮，支持 4 种形态（第 4 个为经典原始版）与差异化敲击特效。
 - “开运拜一拜”成功流程升级为“燃烧显影 → Canvas 海报生成（html2canvas）→ 全屏海报展示”。
 - 为避免浏览器缓存导致脚本旧版本执行，`index.html` 中 `device.js`、`worship.js`、`woodenfish.js` 已添加版本参数。
+- “今日神意签” UI 升级：背景提亮为明亮通透的朱红与金黄配色，替换了纯 CSS 绘制的签筒和签条为真实的像素风 PNG 素材，资源已规范化存储至 `images/fortune/` 目录。
