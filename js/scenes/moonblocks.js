@@ -1,9 +1,10 @@
 /**
- * moonblocks.js — 今日神意签场景
+ * moonblocks.js — 赛博灵签 + 物理掷筊协议
  */
 var MoonBlocksScene = (function () {
     'use strict';
 
+    var _view = 'sticks'; // sticks | blocks
     var _phase = 'prepare'; // prepare → shaking → falling → result
     var _touching = false;
     var _touchCount = 0;
@@ -19,58 +20,250 @@ var MoonBlocksScene = (function () {
     var _fallbackTapHandler = null;
     var _touchStartHandler = null;
     var _touchEndHandler = null;
-    var _motionRequested = false;
     var _moonCost = 20;
     var _pendingStake = 0;
     var _insufficientHintTimer = 0;
+    var _dom = null;
+    var _stickState = 'idle'; // idle | shaking | revealing | result
+    var _stickTimers = [];
+    var _fortuneResult = null;
+    var _fortunes = [
+        '[Status: Bug Free] 事业签：你的每一行代码都被神明加密，永不报错。',
+        '[Status: Cache Cleared] 转运签：旧缓存已退散，新的好运正在热更新。',
+        '[Status: Flow Running] 财运签：你投入的每一点念力，都会在意外之处回本。',
+        '[Status: Ship It] 项目签：卡住你的不是命，是还没点下那次确认启动。',
+        '[Status: Divine Merge] 感情签：心意终会合流，只差一次真诚提交。',
+        '[Status: Momentum++ ] 机缘签：本周会有一个看似随手的选择，悄悄改变走向。'
+    ];
 
     var results = {
         sheng: {
             name: '圣杯',
-            emoji: '',
-            desc: '一正一反',
-            message: '神明大悦，功德翻倍！',
-            detail: '双倍投入尽数奉还，此乃上上吉兆',
+            desc: '一平一凸',
+            message: '上古协议回传：可执行',
+            detail: '神明链路确认通过，此次请求得到明确同意',
             color: '#FFD700'
         },
         xiao: {
             name: '笑杯',
-            emoji: '',
-            desc: '双正',
-            message: '神明微笑，功德不变',
-            detail: '本次投入如数退还，不赚不赔',
+            desc: '双平',
+            message: '上古协议回传：请再描述一次',
+            detail: '链路存在歧义，当前回应偏模糊，建议重发请求',
             color: '#87CEEB'
         },
         ku: {
             name: '哭杯',
-            emoji: '',
-            desc: '双反',
-            message: '神明不语，功德散尽',
-            detail: '本次投入全部没收，且待下回机缘',
+            desc: '双凸',
+            message: '上古协议回传：暂不接受',
+            detail: '当前链路不稳定，建议先缓一缓，再择时重试',
             color: '#DDA0DD'
         }
     };
 
     function init() {
+        _view = 'sticks';
         _phase = 'prepare';
         _touching = false;
         _touchCount = 0;
         _shakeCount = 0;
         _time = 0;
         _result = null;
-        _motionRequested = false;
         _pendingStake = 0;
         _insufficientHintTimer = 0;
+        _stickState = 'idle';
+        _fortuneResult = null;
+        _clearStickTimers();
         UI.clearButtons();
-        _setupPrepareUI();
+        _createFortuneDom();
+        _showSticksView();
         Engine.startLoop(render);
         _bindTouchEvents();
     }
 
+    function _createFortuneDom() {
+        if (_dom && _dom.root && _dom.root.parentNode) return;
+
+        var root = document.createElement('div');
+        root.className = 'fortune-overlay';
+        root.innerHTML =
+            '<div class="fortune-shell">' +
+                '<button class="fortune-back" type="button">返回</button>' +
+                '<div class="fortune-panel">' +
+                    '<div class="fortune-title">赛博灵签</div>' +
+                    '<div class="fortune-rule">正在建立神明链路... 请在脑内同步参数：姓名/标的物/诉求，确认后点击抽签</div>' +
+                    '<div class="fortune-core">' +
+                        '<div class="fortune-tube-wrap">' +
+                            '<div class="fortune-tube-glow"></div>' +
+                            '<div class="fortune-stick" aria-hidden="true"></div>' +
+                            '<div class="fortune-tube">' +
+                                '<div class="fortune-tube-top"></div>' +
+                                '<div class="fortune-tube-body"></div>' +
+                                '<div class="fortune-tube-base"></div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="fortune-actions">' +
+                        '<button class="fortune-primary" type="button">开始读取神意</button>' +
+                        '<button class="fortune-secondary" type="button">切换至物理掷筊协议</button>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="fortune-modal" hidden>' +
+                    '<div class="fortune-modal-card">' +
+                        '<div class="fortune-modal-title"></div>' +
+                        '<div class="fortune-modal-body"></div>' +
+                        '<div class="fortune-modal-actions">' +
+                            '<button class="fortune-modal-cancel" type="button">取消</button>' +
+                            '<button class="fortune-modal-confirm" type="button">确认</button>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+
+        document.body.appendChild(root);
+
+        _dom = {
+            root: root,
+            back: root.querySelector('.fortune-back'),
+            title: root.querySelector('.fortune-title'),
+            rule: root.querySelector('.fortune-rule'),
+            tubeWrap: root.querySelector('.fortune-tube-wrap'),
+            stick: root.querySelector('.fortune-stick'),
+            primary: root.querySelector('.fortune-primary'),
+            secondary: root.querySelector('.fortune-secondary'),
+            modal: root.querySelector('.fortune-modal'),
+            modalTitle: root.querySelector('.fortune-modal-title'),
+            modalBody: root.querySelector('.fortune-modal-body'),
+            modalCancel: root.querySelector('.fortune-modal-cancel'),
+            modalConfirm: root.querySelector('.fortune-modal-confirm')
+        };
+
+        _dom.back.addEventListener('click', function () {
+            Audio.playTap();
+            App.switchScene('home');
+        });
+        _dom.primary.addEventListener('click', function () {
+            Audio.playTap();
+            _startFortuneDraw();
+        });
+        _dom.secondary.addEventListener('click', function () {
+            Audio.playTap();
+            _openProtocolModal();
+        });
+        _dom.modalCancel.addEventListener('click', function () {
+            Audio.playTap();
+            _closeModal();
+        });
+        _dom.modalConfirm.addEventListener('click', function () {
+            Audio.playTap();
+            if (_dom.modalConfirm.dataset.mode === 'protocol') {
+                _closeModal();
+                _enterBlocksView();
+            } else {
+                _closeModal();
+                _resetFortuneUi();
+            }
+        });
+    }
+
+    function _showSticksView() {
+        _view = 'sticks';
+        UI.clearButtons();
+        _resetFortuneUi();
+        if (_dom && _dom.root) _dom.root.hidden = false;
+    }
+
+    function _resetFortuneUi() {
+        _stickState = 'idle';
+        if (!_dom) return;
+        _clearStickTimers();
+        _dom.rule.textContent = '正在建立神明链路... 请在脑内同步参数：姓名/标的物/诉求，确认后点击抽签';
+        _dom.primary.disabled = false;
+        _dom.secondary.disabled = false;
+        _dom.tubeWrap.classList.remove('is-shaking');
+        _dom.stick.classList.remove('is-rising');
+        _closeModal();
+    }
+
+    function _startFortuneDraw() {
+        if (!_dom || _stickState !== 'idle') return;
+        _stickState = 'shaking';
+        _dom.primary.disabled = true;
+        _dom.secondary.disabled = true;
+        _dom.rule.textContent = '神明链路已握手，正在读取灵签缓存...';
+        _dom.tubeWrap.classList.remove('is-shaking');
+        _dom.stick.classList.remove('is-rising');
+        void _dom.tubeWrap.offsetWidth;
+        _dom.tubeWrap.classList.add('is-shaking');
+        Device.tapVibrate();
+
+        _stickTimers.push(window.setTimeout(function () {
+            if (!_dom) return;
+            _stickState = 'revealing';
+            _dom.tubeWrap.classList.remove('is-shaking');
+            _dom.stick.classList.add('is-rising');
+            _dom.rule.textContent = '签文已出列，正在解析神意字段...';
+            Engine.addFloatingText(Engine.width() / 2, Engine.height() * 0.48, 'SIGNAL', '#ffd84c', 20);
+        }, 1500));
+
+        _stickTimers.push(window.setTimeout(function () {
+            _stickState = 'result';
+            _fortuneResult = _fortunes[Math.floor(Math.random() * _fortunes.length)];
+            _openResultModal();
+        }, 2280));
+    }
+
+    function _openResultModal() {
+        if (!_dom) return;
+        _dom.modal.hidden = false;
+        _dom.modalTitle.textContent = '神意回执';
+        _dom.modalBody.textContent = _fortuneResult;
+        _dom.modalCancel.textContent = '关闭';
+        _dom.modalConfirm.textContent = '再读一签';
+        _dom.modalConfirm.dataset.mode = 'result';
+        _dom.primary.disabled = true;
+        _dom.secondary.disabled = true;
+        Device.mediumVibrate();
+    }
+
+    function _openProtocolModal() {
+        if (!_dom) return;
+        _dom.modal.hidden = false;
+        _dom.modalTitle.textContent = '物理掷筊协议说明';
+        _dom.modalBody.textContent = '这是上古二进制通讯协议，一平一凸为圣杯（同意），双平为笑杯（含糊），双凸为哭杯（暂不接受）。确认后将切换至已有的物理掷筊组件。';
+        _dom.modalCancel.textContent = '再想想';
+        _dom.modalConfirm.textContent = '确认启动';
+        _dom.modalConfirm.dataset.mode = 'protocol';
+    }
+
+    function _closeModal() {
+        if (!_dom) return;
+        _dom.modal.hidden = true;
+    }
+
+    function _clearStickTimers() {
+        for (var i = 0; i < _stickTimers.length; i++) {
+            window.clearTimeout(_stickTimers[i]);
+        }
+        _stickTimers = [];
+    }
+
+    function _enterBlocksView() {
+        _view = 'blocks';
+        _phase = 'prepare';
+        _shakeCount = 0;
+        _result = null;
+        _resultTimer = 0;
+        _fallTimer = 0;
+        _touching = false;
+        _closeModal();
+        if (_dom && _dom.root) _dom.root.hidden = true;
+        _setupPrepareUI();
+    }
+
     function _setupPrepareUI() {
+        if (_view !== 'blocks') return;
         UI.clearButtons();
 
-        // 返回
         UI.createButton({
             x: 15, y: 15, w: 70, h: 36,
             text: '返回',
@@ -81,7 +274,6 @@ var MoonBlocksScene = (function () {
             onClick: function () { App.switchScene('home'); }
         });
 
-        // 权限按钮 (如果需要)
         if (!Device.isMotionGranted() && Device.isMotionSupported()) {
             var W = Engine.width();
             UI.createButton({
@@ -95,10 +287,7 @@ var MoonBlocksScene = (function () {
                 fontSize: 15, radius: 25,
                 onClick: function () {
                     Device.requestMotionPermission(function (granted) {
-                        if (granted) {
-                            _motionRequested = true;
-                            _setupPrepareUI();
-                        }
+                        if (granted) _setupPrepareUI();
                     });
                 }
             });
@@ -109,7 +298,7 @@ var MoonBlocksScene = (function () {
         var canvas = Engine.getCanvas();
 
         _touchStartHandler = function (e) {
-            // 统计触摸点
+            if (_view !== 'blocks') return;
             if (e.touches) {
                 _touchCount = e.touches.length;
             } else {
@@ -124,6 +313,7 @@ var MoonBlocksScene = (function () {
         };
 
         _touchEndHandler = function (e) {
+            if (_view !== 'blocks') return;
             if (e.touches) {
                 _touchCount = e.touches.length;
             } else {
@@ -158,7 +348,7 @@ var MoonBlocksScene = (function () {
             }
         });
 
-        _shakeCallback = function (intensity) {
+        _shakeCallback = function () {
             if (_phase !== 'shaking') return;
             _doShakeStep();
         };
@@ -166,10 +356,9 @@ var MoonBlocksScene = (function () {
         if (Device.isMotionGranted()) {
             Device.onShake(_shakeCallback);
         } else {
-            // 无陀螺仪 → 点击屏幕模拟摇动
             var canvas = Engine.getCanvas();
             var lastTap = 0;
-            _fallbackTapHandler = function (e) {
+            _fallbackTapHandler = function () {
                 if (_phase !== 'shaking') return;
                 var now = Date.now();
                 if (now - lastTap < 350) return;
@@ -187,9 +376,9 @@ var MoonBlocksScene = (function () {
         Engine.addFloatingText(
             Engine.width() / 2 + (Math.random() - 0.5) * 60,
             Engine.height() * 0.4,
-            '✦',
+            '01',
             '#CD853F',
-            20
+            18
         );
         if (_shakeCount >= _requiredShakes) {
             if (_shakeCallback) Device.offShake(_shakeCallback);
@@ -216,7 +405,7 @@ var MoonBlocksScene = (function () {
         }
         MeritSystem.deductPoints(_moonCost);
         _pendingStake = _moonCost;
-        MeritSystem.showToast('已投入 ' + _moonCost + ' 功德，静候杯筊', 'info');
+        MeritSystem.showToast('已投入 ' + _moonCost + ' 功德，正在启动物理掷筊协议', 'info');
         return true;
     }
 
@@ -231,18 +420,17 @@ var MoonBlocksScene = (function () {
         _phase = 'falling';
         _fallTimer = 0;
 
-        // 随机决定结果
         var rand = Math.random();
         if (rand < 0.5) {
-            _result = 'sheng'; // 圣杯 — 一正一反
+            _result = 'sheng';
             _block1.faceUp = true;
             _block2.faceUp = false;
         } else if (rand < 0.75) {
-            _result = 'xiao'; // 笑杯 — 双正
+            _result = 'xiao';
             _block1.faceUp = true;
             _block2.faceUp = true;
         } else {
-            _result = 'ku'; // 哭杯 — 双反
+            _result = 'ku';
             _block1.faceUp = false;
             _block2.faceUp = false;
         }
@@ -273,12 +461,12 @@ var MoonBlocksScene = (function () {
 
         if (_result === 'sheng') {
             MeritSystem.addPoints(_pendingStake * 2);
-            MeritSystem.showToast('神明大悦，功德翻倍！', 'success');
+            MeritSystem.showToast('上古协议通过，功德翻倍！', 'success');
         } else if (_result === 'xiao') {
             MeritSystem.addPoints(_pendingStake);
-            MeritSystem.showToast('神明微笑，功德不变', 'info');
+            MeritSystem.showToast('协议返回含糊，本次功德不变', 'info');
         } else {
-            MeritSystem.showToast('神明不语，功德散尽', 'danger');
+            MeritSystem.showToast('协议拒绝，本次功德散尽', 'danger');
         }
         _pendingStake = 0;
 
@@ -322,12 +510,12 @@ var MoonBlocksScene = (function () {
 
         Draw.drawBackground(ctx, w, h);
         Draw.drawFrame(ctx, w, h);
-        Draw.drawPanel(ctx, w * 0.08, h * 0.1, w * 0.84, h * 0.68, Draw.THEME.panelDark, Draw.THEME.cyan, Draw.THEME.pink, Draw.THEME.ink);
-
-        // 装饰
+        Draw.drawPanel(ctx, w * 0.08, h * 0.1, w * 0.84, h * 0.72, Draw.THEME.panelDark, Draw.THEME.cyan, Draw.THEME.pink, Draw.THEME.ink);
         Draw.drawCloud(ctx, (_time * 10 % (w + 100)) - 50, h * 0.08, 0.5, 0.06);
 
-        if (_phase === 'prepare') {
+        if (_view === 'sticks') {
+            _renderSticksBackdrop(ctx, w, h);
+        } else if (_phase === 'prepare') {
             _renderPrepare(ctx, w, h);
         } else if (_phase === 'shaking') {
             _renderShaking(ctx, w, h);
@@ -340,7 +528,17 @@ var MoonBlocksScene = (function () {
         }
 
         UI.drawButtons(ctx);
-        _drawReturnHint(ctx);
+        if (_view === 'blocks') _drawReturnHint(ctx);
+    }
+
+    function _renderSticksBackdrop(ctx, w, h) {
+        var titleW = 220, titleH = 48;
+        UI.drawRoundedRect(ctx, w / 2 - titleW / 2, h * 0.08, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
+        UI.drawTitle(ctx, '赛博灵签', w / 2, h * 0.08 + titleH / 2 + 2, 24, Draw.THEME.gold);
+        Draw.drawHalo(ctx, w / 2, h * 0.42, 118, '#ff58b3', 0.11 + Math.sin(_time * 2) * 0.04);
+        Draw.drawHalo(ctx, w / 2, h * 0.42, 78, '#63efff', 0.08 + Math.sin(_time * 1.6 + 0.3) * 0.03);
+        UI.drawSubtitle(ctx, '签筒协议已装载，等待神意握手', w / 2, h * 0.78, 14, '#63efff');
+        UI.drawSubtitle(ctx, '若要进入旧神系统，可切换至物理掷筊协议', w / 2, h * 0.83, 12, '#fff2c1');
     }
 
     function _drawReturnHint(ctx) {
@@ -359,17 +557,14 @@ var MoonBlocksScene = (function () {
     }
 
     function _renderPrepare(ctx, w, h) {
-        var titleW = 200, titleH = 48;
+        var titleW = 260, titleH = 48;
         UI.drawRoundedRect(ctx, w / 2 - titleW / 2, h * 0.08, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
-        UI.drawTitle(ctx, '今日神意签', w / 2, h * 0.08 + titleH / 2 + 2, 24, Draw.THEME.gold);
+        UI.drawTitle(ctx, '物理掷筊协议', w / 2, h * 0.08 + titleH / 2 + 2, 22, Draw.THEME.gold);
 
-        // 展示杯筊
         Draw.drawMoonBlock(ctx, w * 0.38, h * 0.38, 1.5, true, Math.sin(_time) * 0.1);
         Draw.drawMoonBlock(ctx, w * 0.62, h * 0.42, 1.5, false, Math.cos(_time) * 0.1);
-
         Draw.drawHalo(ctx, w / 2, h * 0.4, 100, '#ff58b3', 0.1 + Math.sin(_time * 2) * 0.04);
 
-        // 提示
         var alpha = 0.5 + Math.sin(_time * 3) * 0.3;
         ctx.save();
         ctx.font = '16px "PoxiaoPixel"';
@@ -399,18 +594,16 @@ var MoonBlocksScene = (function () {
 
     function _renderShaking(ctx, w, h) {
         var shake = Math.sin(_time * 20) * 3;
-        var titleW = 200, titleH = 48;
+        var titleW = 260, titleH = 48;
         UI.drawRoundedRect(ctx, w / 2 - titleW / 2, h * 0.08, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
-        UI.drawTitle(ctx, '今日神意签', w / 2, h * 0.08 + titleH / 2 + 2, 24, Draw.THEME.gold);
+        UI.drawTitle(ctx, '物理掷筊协议', w / 2, h * 0.08 + titleH / 2 + 2, 22, Draw.THEME.gold);
 
-        // 抖动效果
         ctx.save();
         ctx.translate(shake, shake * 0.5);
         Draw.drawMoonBlock(ctx, w * 0.38, h * 0.38, 1.5, true, _time * 3);
         Draw.drawMoonBlock(ctx, w * 0.62, h * 0.42, 1.5, false, -_time * 2.5);
         ctx.restore();
 
-        // 进度
         ctx.save();
         ctx.font = '36px "PoxiaoPixel"';
         ctx.textAlign = 'center';
@@ -435,30 +628,27 @@ var MoonBlocksScene = (function () {
         ctx.restore();
 
         UI.drawProgressBar(ctx, (w - 180) / 2, h * 0.7, 180, 8, _shakeCount / _requiredShakes, '#ff58b3');
-
-
     }
 
     function _renderFalling(ctx, w, h) {
-        var titleW = 200, titleH = 48;
+        var titleW = 260, titleH = 48;
         UI.drawRoundedRect(ctx, w / 2 - titleW / 2, h * 0.08, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
-        UI.drawTitle(ctx, '今日神意签', w / 2, h * 0.08 + titleH / 2 + 2, 24, Draw.THEME.gold);
+        UI.drawTitle(ctx, '物理掷筊协议', w / 2, h * 0.08 + titleH / 2 + 2, 22, Draw.THEME.gold);
 
-        // 落下动画
         var blocks = [_block1, _block2];
         var allLanded = true;
 
         for (var i = 0; i < blocks.length; i++) {
             var b = blocks[i];
             if (!b.landed) {
-                b.vy += 0.5; // 重力
+                b.vy += 0.5;
                 b.y += b.vy;
                 b.rotation += 0.15 * (i === 0 ? 1 : -1);
 
                 if (b.y >= b.targetY) {
                     b.y = b.targetY;
                     b.landed = true;
-                    b.rotation = (Math.random() - 0.5) * 0.3; // 落地微倾
+                    b.rotation = (Math.random() - 0.5) * 0.3;
                     Device.tapVibrate();
                 }
                 allLanded = false;
@@ -467,26 +657,19 @@ var MoonBlocksScene = (function () {
             Draw.drawMoonBlock(ctx, b.x, b.y, 1.8, b.faceUp, b.rotation);
         }
 
-        if (allLanded && _fallTimer > 0.8) {
-            _showResult();
-        }
+        if (allLanded && _fallTimer > 0.8) _showResult();
     }
 
     function _renderResult(ctx, w, h) {
         var r = results[_result];
         var fadeIn = Math.min(1, _resultTimer / 0.6);
 
-        // 杯筊静态展示
         Draw.drawMoonBlock(ctx, _block1.x, _block1.targetY, 1.8, _block1.faceUp, _block1.rotation);
         Draw.drawMoonBlock(ctx, _block2.x, _block2.targetY, 1.8, _block2.faceUp, _block2.rotation);
-
-        // 结果光环
         Draw.drawHalo(ctx, w / 2, h * 0.5, 120, r.color, 0.2 * fadeIn);
 
         ctx.save();
         ctx.globalAlpha = fadeIn;
-
-        // 结果标题
         ctx.font = '42px "PoxiaoPixel"';
         ctx.textAlign = 'center';
         ctx.lineJoin = 'round';
@@ -496,25 +679,21 @@ var MoonBlocksScene = (function () {
         ctx.fillStyle = r.color;
         ctx.fillText(r.name, w / 2, h * 0.25);
 
-        // 描述
         ctx.font = '14px "PoxiaoPixel"';
         ctx.lineWidth = 3;
         ctx.strokeText(r.desc, w / 2, h * 0.31);
         ctx.fillStyle = '#63efff';
         ctx.fillText(r.desc, w / 2, h * 0.31);
 
-        // 主语
         ctx.font = '20px "PoxiaoPixel"';
         ctx.strokeText('「' + r.message + '」', w / 2, h * 0.7);
         ctx.fillStyle = '#fff2c1';
         ctx.fillText('「' + r.message + '」', w / 2, h * 0.7);
 
-        // 副语
         ctx.font = '14px "PoxiaoPixel"';
         ctx.strokeText(r.detail, w / 2, h * 0.76);
         ctx.fillStyle = '#ff8a3d';
         ctx.fillText(r.detail, w / 2, h * 0.76);
-
         ctx.restore();
     }
 
@@ -530,6 +709,7 @@ var MoonBlocksScene = (function () {
 
     function destroy() {
         UI.clearButtons();
+        _clearStickTimers();
         if (_shakeCallback) Device.offShake(_shakeCallback);
         _removeFallbackTap();
         _refundPendingStake();
@@ -544,6 +724,10 @@ var MoonBlocksScene = (function () {
         }
         _touchStartHandler = null;
         _touchEndHandler = null;
+        if (_dom && _dom.root && _dom.root.parentNode) {
+            _dom.root.parentNode.removeChild(_dom.root);
+        }
+        _dom = null;
     }
 
     return {

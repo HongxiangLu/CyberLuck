@@ -219,6 +219,311 @@ html, body {
     }
 }
 
+.fortune-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 18px;
+    pointer-events: auto;
+}
+
+.fortune-shell {
+    position: relative;
+    width: min(92vw, 420px);
+}
+
+.fortune-panel {
+    position: relative;
+    background:
+        linear-gradient(180deg, rgba(20, 12, 34, 0.98), rgba(10, 8, 22, 0.98)),
+        #120b1f;
+    border: 2px solid #ff58b3;
+    box-shadow:
+        0 0 0 2px rgba(17, 6, 26, 0.95) inset,
+        0 0 16px rgba(255, 88, 179, 0.35),
+        0 0 32px rgba(99, 239, 255, 0.15);
+    padding: 60px 22px 24px;
+}
+
+.fortune-back {
+    position: absolute;
+    left: 0;
+    top: -6px;
+    min-width: 84px;
+    height: 40px;
+    border: 2px solid rgba(99, 239, 255, 0.5);
+    background: rgba(12, 14, 26, 0.96);
+    color: #fff2c1;
+    font: 15px "PoxiaoPixel", sans-serif;
+    box-shadow: 0 0 12px rgba(99, 239, 255, 0.18);
+}
+
+.fortune-title {
+    margin-bottom: 14px;
+    color: #ffd84c;
+    text-align: center;
+    font-size: 26px;
+    letter-spacing: 0.08em;
+    text-shadow:
+        0 0 8px rgba(255, 216, 76, 0.8),
+        0 0 18px rgba(255, 88, 179, 0.28);
+}
+
+.fortune-rule {
+    min-height: 72px;
+    color: #63efff;
+    text-align: center;
+    line-height: 1.75;
+    font-size: 14px;
+    text-shadow: 0 0 8px rgba(99, 239, 255, 0.2);
+}
+
+.fortune-core {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 260px;
+    margin: 10px 0 18px;
+}
+
+.fortune-tube-wrap {
+    position: relative;
+    width: 160px;
+    height: 220px;
+}
+
+.fortune-tube-wrap.is-shaking {
+    animation: fortune-tube-shake 0.14s steps(2, end) 11;
+}
+
+.fortune-tube-glow {
+    position: absolute;
+    inset: 26px 10px 18px;
+    background: radial-gradient(circle, rgba(255, 88, 179, 0.22) 0%, rgba(99, 239, 255, 0.06) 55%, rgba(99, 239, 255, 0) 76%);
+    filter: blur(6px);
+}
+
+.fortune-stick {
+    position: absolute;
+    left: 50%;
+    top: 46px;
+    width: 26px;
+    height: 124px;
+    transform: translateX(-50%) translateY(76px);
+    background:
+        linear-gradient(180deg, #ffefae 0%, #ffd84c 25%, #ff9f50 60%, #ff58b3 100%);
+    border: 2px solid #fff2c1;
+    box-shadow:
+        0 0 10px rgba(255, 216, 76, 0.45),
+        0 0 18px rgba(255, 88, 179, 0.2);
+    opacity: 0.12;
+    z-index: 1;
+}
+
+.fortune-stick::before {
+    content: "";
+    position: absolute;
+    left: 5px;
+    right: 5px;
+    top: 12px;
+    bottom: 12px;
+    border-top: 2px solid rgba(18, 11, 31, 0.5);
+    border-bottom: 2px solid rgba(18, 11, 31, 0.35);
+}
+
+.fortune-stick.is-rising {
+    animation: fortune-stick-rise 0.72s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.fortune-tube {
+    position: absolute;
+    left: 50%;
+    bottom: 8px;
+    width: 130px;
+    height: 176px;
+    transform: translateX(-50%);
+    z-index: 2;
+}
+
+.fortune-tube-top,
+.fortune-tube-body,
+.fortune-tube-base {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.fortune-tube-top {
+    top: 0;
+    width: 132px;
+    height: 28px;
+    border: 2px solid #ff58b3;
+    background:
+        radial-gradient(circle at 50% 35%, rgba(255, 242, 193, 0.25), rgba(255, 242, 193, 0) 58%),
+        linear-gradient(180deg, #59132f, #220916);
+    box-shadow:
+        0 0 14px rgba(255, 88, 179, 0.35),
+        0 0 0 2px rgba(15, 8, 22, 0.9) inset;
+    border-radius: 50% / 60%;
+}
+
+.fortune-tube-body {
+    top: 14px;
+    width: 114px;
+    height: 138px;
+    background:
+        linear-gradient(90deg, #3d0e1f 0%, #6d1737 20%, #8f2447 50%, #5a1331 80%, #2c0a18 100%);
+    border-left: 2px solid #ff58b3;
+    border-right: 2px solid #ff58b3;
+    box-shadow:
+        0 0 18px rgba(255, 88, 179, 0.28),
+        0 0 0 2px rgba(15, 8, 22, 0.9) inset;
+}
+
+.fortune-tube-body::before,
+.fortune-tube-body::after {
+    content: "";
+    position: absolute;
+    top: 18px;
+    bottom: 18px;
+    width: 3px;
+    background: rgba(255, 242, 193, 0.2);
+}
+
+.fortune-tube-body::before {
+    left: 14px;
+}
+
+.fortune-tube-body::after {
+    right: 14px;
+}
+
+.fortune-tube-base {
+    bottom: 0;
+    width: 124px;
+    height: 36px;
+    border: 2px solid #63efff;
+    background:
+        linear-gradient(180deg, #301022, #160b1b),
+        #160b1b;
+    box-shadow:
+        0 0 16px rgba(99, 239, 255, 0.28),
+        0 0 0 2px rgba(15, 8, 22, 0.9) inset;
+    border-radius: 50% / 58%;
+}
+
+.fortune-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.fortune-primary,
+.fortune-secondary,
+.fortune-modal-cancel,
+.fortune-modal-confirm {
+    border: 2px solid #63efff;
+    background: #100d1d;
+    color: #fff2c1;
+    font: 15px "PoxiaoPixel", sans-serif;
+    padding: 14px 16px;
+    box-shadow:
+        0 0 12px rgba(99, 239, 255, 0.2),
+        0 0 0 2px rgba(15, 8, 22, 0.92) inset;
+}
+
+.fortune-primary {
+    border-color: #ff58b3;
+    box-shadow:
+        0 0 14px rgba(255, 88, 179, 0.28),
+        0 0 0 2px rgba(15, 8, 22, 0.92) inset;
+}
+
+.fortune-primary:disabled,
+.fortune-secondary:disabled {
+    opacity: 0.55;
+}
+
+.fortune-modal {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(3, 4, 9, 0.82);
+}
+
+.fortune-modal-card {
+    width: 100%;
+    background:
+        linear-gradient(180deg, rgba(17, 13, 30, 0.98), rgba(10, 9, 20, 0.98)),
+        #120b1f;
+    border: 2px solid #63efff;
+    box-shadow:
+        0 0 16px rgba(99, 239, 255, 0.22),
+        0 0 0 2px rgba(15, 8, 22, 0.92) inset;
+    padding: 20px 18px 18px;
+}
+
+.fortune-modal-title {
+    color: #ffd84c;
+    text-align: center;
+    font-size: 20px;
+    margin-bottom: 14px;
+    text-shadow: 0 0 8px rgba(255, 216, 76, 0.35);
+}
+
+.fortune-modal-body {
+    color: #fff2c1;
+    text-align: center;
+    line-height: 1.8;
+    font-size: 14px;
+    min-height: 104px;
+}
+
+.fortune-modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.fortune-modal-cancel,
+.fortune-modal-confirm {
+    flex: 1;
+}
+
+@keyframes fortune-tube-shake {
+    0% { transform: translateX(0) rotate(0deg); }
+    20% { transform: translateX(-8px) rotate(-3deg); }
+    40% { transform: translateX(8px) rotate(3deg); }
+    60% { transform: translateX(-6px) rotate(-2deg); }
+    80% { transform: translateX(6px) rotate(2deg); }
+    100% { transform: translateX(0) rotate(0deg); }
+}
+
+@keyframes fortune-stick-rise {
+    0% {
+        opacity: 0.12;
+        transform: translateX(-50%) translateY(76px);
+    }
+    25% {
+        opacity: 0.7;
+        transform: translateX(-50%) translateY(42px);
+    }
+    70% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(-18px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(-30px);
+    }
+}
+
 @keyframes intro-screen-shake {
     0% {
         transform: translate(0, 0);
