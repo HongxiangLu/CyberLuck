@@ -20,8 +20,53 @@ var StickmanScene = (function () {
     var _dropFromPose = null;
     var _dropToPose = null;
     var _resultMeta = null;
+    var _spriteLoadToken = 0;
+    var _spritesReady = false;
+    var _spriteSet = {
+        head: null,
+        torso: null,
+        arm: null,
+        leg: null,
+        foot: null
+    };
 
     var _touchStartH = null, _touchMoveH = null, _touchEndH = null;
+
+    function _loadStickmanSprites(done) {
+        if (_spritesReady && _spriteSet.head && _spriteSet.torso && _spriteSet.arm && _spriteSet.leg && _spriteSet.foot) {
+            done();
+            return;
+        }
+
+        var token = ++_spriteLoadToken;
+        var names = ['head', 'torso', 'arm', 'leg', 'foot'];
+        var remaining = names.length;
+
+        function finish() {
+            if (token !== _spriteLoadToken) return;
+            remaining--;
+            if (remaining <= 0) {
+                _spritesReady = true;
+                done();
+            }
+        }
+
+        for (var i = 0; i < names.length; i++) {
+            (function (name) {
+                var existing = _spriteSet[name];
+                if (existing && existing.complete && existing.naturalWidth > 0) {
+                    finish();
+                    return;
+                }
+
+                var img = new Image();
+                img.onload = finish;
+                img.onerror = finish;
+                img.src = './images/stickman/' + name + '.png';
+                _spriteSet[name] = img;
+            })(names[i]);
+        }
+    }
 
     /* ====== 骨骼初始化 ====== */
     function _initSegments() {
@@ -146,14 +191,14 @@ var StickmanScene = (function () {
 
     function _getFloatAnchor() {
         return {
-            x: W * 0.47,
-            y: H * 0.67
+            x: W * 0.48,
+            y: H * 0.655
         };
     }
 
     function _getGroundAnchor() {
         return {
-            x: W * 0.47,
+            x: W * 0.48,
             y: FLOOR_Y
         };
     }
@@ -237,14 +282,17 @@ var StickmanScene = (function () {
         _dropProgress = 1;
         W = Engine.width();
         H = Engine.height();
-        FLOOR_Y = H * 0.82;
+        FLOOR_Y = H * 0.835;
+        _spritesReady = false;
 
-        _initSegments();
-        _placePrepareFigure();
-        _setupUI();
-        _bindTouch();
-        _lastTime = performance.now();
-        Engine.startLoop(render);
+        _loadStickmanSprites(function () {
+            _initSegments();
+            _placePrepareFigure();
+            _setupUI();
+            _bindTouch();
+            _lastTime = performance.now();
+            Engine.startLoop(render);
+        });
     }
 
     function _setupUI() {
@@ -254,16 +302,16 @@ var StickmanScene = (function () {
                 color:'rgba(255,255,255,0.7)', bgColor:'rgba(255,255,255,0.05)',
                 borderColor:'rgba(255,255,255,0.15)', fontSize:13, radius:18,
                 onClick:function(){ App.switchScene('home'); } });
-            var bw = Math.min(W*0.6,220);
-            UI.createButton({ x:(W-bw)/2, y:H*0.76, w:bw, h:52, text:'开始挑战',
-                color:'#FFF', bgColor:'rgba(250,128,114,0.3)',
-                borderColor:'rgba(250,128,114,0.8)', fontSize:18, radius:26,
+            var bw = Math.min(W * 0.62, 232);
+            UI.createButton({ x:(W-bw)/2, y:H*0.79, w:bw, h:52, text:'开始挑战',
+                color:'#FFF7D6', bgColor:'rgba(255,79,184,0.28)',
+                borderColor:'rgba(255,215,94,0.78)', fontSize:18, radius:26,
                 onClick:_startChallenge });
         } else if (_phase === 'result') {
             var bw2 = Math.min(W*0.42,155);
             UI.createButton({ x:W/2-bw2-8, y:H*0.88, w:bw2, h:46, text:'重来',
-                color:'#FFF', bgColor:'rgba(255,255,255,0.1)',
-                borderColor:'rgba(255,255,255,0.3)', fontSize:15, radius:23,
+                color:'#D9F9FF', bgColor:'rgba(0,240,255,0.12)',
+                borderColor:'rgba(0,240,255,0.42)', fontSize:15, radius:23,
                 onClick:function(){ Audio.playTap(); init(); } });
             UI.createButton({ x:W/2+8, y:H*0.88, w:bw2, h:46, text:'保存图片',
                 color:'#FFD700', bgColor:'rgba(255,215,0,0.2)',
@@ -438,308 +486,50 @@ var StickmanScene = (function () {
         return '#' + (1 << 24 | r << 16 | g << 8 | bl).toString(16).slice(1);
     }
 
-    function _drawPuppetLimb(ctx, s, opts) {
-        if (!s) return;
-        opts = opts || {};
-        var dx = s.ex - s.px;
-        var dy = s.ey - s.py;
-        var len = Math.sqrt(dx * dx + dy * dy) || 1;
-        var ang = Math.atan2(dy, dx);
-        var width = opts.width || (s.thick + 14);
-        var tailWidth = opts.tailWidth || width * 0.88;
-        var border = opts.border || '#12091f';
-        var fill = opts.fill || '#73213f';
-        var trim = opts.trim || '#ffd75e';
-        var inner = opts.inner || _mixColor(fill, '#ffffff', 0.12);
-        var shadow = opts.shadow || _mixColor(fill, '#12091f', 0.38);
-        var neonA = opts.neonA || '#00f0ff';
-        var neonB = opts.neonB || '#ff4fb8';
-        var startFlare = opts.startFlare || 1.16;
-        var endFlare = opts.endFlare || 0.98;
-        var pieceStyle = opts.pieceStyle || 'sleeve';
-        var cuff = Math.max(8, width * 0.28);
-        var tab = Math.max(4, width * 0.2);
+    function _drawBoneSprite(ctx, img, x1, y1, x2, y2, height, anchorX) {
+        if (!img || !img.complete || img.naturalWidth <= 0 || img.naturalHeight <= 0) return;
+        var dx = x2 - x1;
+        var dy = y2 - y1;
+        var length = Math.sqrt(dx * dx + dy * dy) || 1;
+        var angle = Math.atan2(dy, dx);
+        var drawHeight = height || (length * (img.naturalHeight / Math.max(1, img.naturalWidth)));
+        var ax = anchorX == null ? 0 : anchorX;
 
         ctx.save();
-        ctx.translate(s.px, s.py);
-        ctx.rotate(ang);
-
-        ctx.beginPath();
-        ctx.moveTo(-tab, -width * startFlare * 0.48);
-        ctx.lineTo(len * 0.16, -width * 0.54);
-        ctx.lineTo(len + tab, -tailWidth * endFlare * 0.46);
-        ctx.lineTo(len + tab, tailWidth * endFlare * 0.46);
-        ctx.lineTo(len * 0.16, width * 0.54);
-        ctx.lineTo(-tab, width * startFlare * 0.48);
-        ctx.closePath();
-        ctx.fillStyle = border;
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.moveTo(0, -width * 0.4);
-        ctx.lineTo(len * 0.16, -width * 0.46);
-        ctx.lineTo(len, -tailWidth * 0.34);
-        ctx.lineTo(len, tailWidth * 0.34);
-        ctx.lineTo(len * 0.16, width * 0.46);
-        ctx.lineTo(0, width * 0.4);
-        ctx.closePath();
-        ctx.fillStyle = fill;
-        ctx.fill();
-
-        ctx.fillStyle = inner;
-        ctx.fillRect(6, -width * 0.24, Math.max(10, len - 12), Math.max(3, width * 0.14));
-        ctx.fillStyle = shadow;
-        ctx.fillRect(8, width * 0.12, Math.max(10, len - 16), Math.max(3, width * 0.12));
-
-        ctx.fillStyle = trim;
-        ctx.fillRect(6, -width * 0.3, Math.max(12, len * 0.18), 4);
-        ctx.fillRect(len - Math.max(12, len * 0.18) - 6, width * 0.22, Math.max(12, len * 0.18), 4);
-
-        if (pieceStyle === 'robe') {
-            ctx.fillStyle = '#b72b50';
-            ctx.fillRect(len * 0.18, -width * 0.18, Math.max(12, len * 0.48), Math.max(6, width * 0.36));
-            ctx.fillStyle = trim;
-            ctx.fillRect(len * 0.24, -2, Math.max(12, len * 0.36), 4);
-            ctx.strokeStyle = neonA;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(len * 0.24, -width * 0.12);
-            ctx.lineTo(len * 0.42, -width * 0.12);
-            ctx.lineTo(len * 0.52, width * 0.06);
-            ctx.lineTo(len * 0.72, width * 0.06);
-            ctx.stroke();
-            ctx.strokeStyle = neonB;
-            ctx.beginPath();
-            ctx.moveTo(len * 0.26, width * 0.16);
-            ctx.lineTo(len * 0.38, width * 0.16);
-            ctx.lineTo(len * 0.46, -width * 0.02);
-            ctx.lineTo(len * 0.66, -width * 0.02);
-            ctx.stroke();
-        } else if (pieceStyle === 'sleeve') {
-            ctx.fillStyle = '#8f224d';
-            ctx.fillRect(len * 0.14, -width * 0.22, Math.max(10, len * 0.58), Math.max(6, width * 0.44));
-            ctx.strokeStyle = trim;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(len * 0.24, 0);
-            ctx.lineTo(len * 0.32, -width * 0.18);
-            ctx.lineTo(len * 0.4, 0);
-            ctx.lineTo(len * 0.48, -width * 0.18);
-            ctx.lineTo(len * 0.56, 0);
-            ctx.stroke();
-            ctx.strokeStyle = neonA;
-            ctx.beginPath();
-            ctx.moveTo(len * 0.2, width * 0.14);
-            ctx.lineTo(len * 0.36, width * 0.14);
-            ctx.lineTo(len * 0.46, width * 0.26);
-            ctx.lineTo(len * 0.62, width * 0.26);
-            ctx.stroke();
-        } else {
-            ctx.fillStyle = '#241040';
-            ctx.fillRect(len * 0.18, -width * 0.18, Math.max(10, len * 0.5), Math.max(6, width * 0.36));
-            ctx.fillStyle = neonB;
-            ctx.fillRect(len * 0.26, -1, Math.max(10, len * 0.34), 3);
-            ctx.fillStyle = neonA;
-            ctx.fillRect(len * 0.26, width * 0.12, Math.max(10, len * 0.26), 3);
-        }
-
-        ctx.fillStyle = trim;
-        ctx.fillRect(len - cuff, -tailWidth * 0.2, cuff - 2, Math.max(6, tailWidth * 0.4));
-        ctx.fillStyle = border;
-        ctx.fillRect(len - cuff, -tailWidth * 0.2, 2, Math.max(6, tailWidth * 0.4));
-
+        ctx.translate(x1, y1);
+        ctx.rotate(angle);
+        ctx.drawImage(img, -length * ax, -drawHeight / 2, length, drawHeight);
         ctx.restore();
     }
 
-    function _drawPuppetJoint(ctx, x, y, size) {
-        var r = Math.max(7, size || 8);
-        ctx.save();
-        ctx.shadowColor = 'rgba(0,240,255,0.55)';
-        ctx.shadowBlur = 10;
-        ctx.beginPath();
-        ctx.arc(x, y, r + 4, 0, Math.PI * 2);
-        ctx.fillStyle = '#12091f';
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(x, y, r + 1.5, 0, Math.PI * 2);
-        ctx.fillStyle = '#6f4a12';
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(x, y, r - 1.5, 0, Math.PI * 2);
-        ctx.fillStyle = '#d8a93f';
-        ctx.fill();
-        ctx.fillStyle = '#12091f';
-        ctx.fillRect(Math.round(x - r * 0.28), Math.round(y - r * 0.28), Math.round(r * 0.56), Math.round(r * 0.56));
-        ctx.fillStyle = '#fff4af';
-        ctx.fillRect(Math.round(x - r * 0.12), Math.round(y - r * 0.12), Math.round(r * 0.24), Math.round(r * 0.24));
-        ctx.fillStyle = '#00f0ff';
-        ctx.fillRect(Math.round(x - 1), Math.round(y - r - 3), 2, 3);
-        ctx.fillStyle = '#ff4fb8';
-        ctx.fillRect(Math.round(x - 1), Math.round(y + r), 2, 3);
-        ctx.fillRect(Math.round(x - r - 3), Math.round(y - 1), 3, 2);
-        ctx.fillStyle = '#00f0ff';
-        ctx.fillRect(Math.round(x + r), Math.round(y - 1), 3, 2);
-        ctx.restore();
+    function _drawHeadSprite(ctx, seg) {
+        var img = _spriteSet.head;
+        if (!seg || !img || !img.complete || img.naturalWidth <= 0 || img.naturalHeight <= 0) return;
+        var cx = seg.ex;
+        var cy = seg.ey;
+        var size = Math.max(44, seg.len * 2.18);
+        var h = size * (img.naturalHeight / Math.max(1, img.naturalWidth));
+        ctx.drawImage(img, cx - size / 2, cy - h / 2, size, h);
     }
 
-    function _drawPuppetFoot(ctx, x, y, flip) {
+    function _drawFootSprite(ctx, x, y, flip) {
+        var img = _spriteSet.foot;
+        if (!img || !img.complete || img.naturalWidth <= 0 || img.naturalHeight <= 0) return;
+        var w = 24;
+        var h = w * (img.naturalHeight / Math.max(1, img.naturalWidth));
         ctx.save();
         ctx.translate(x, y);
-        ctx.scale(flip ? -1 : 1, 1);
-        ctx.fillStyle = '#150a26';
-        ctx.beginPath();
-        ctx.moveTo(-6, 1);
-        ctx.lineTo(18, -2);
-        ctx.lineTo(22, 4);
-        ctx.lineTo(0, 8);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = '#ffd75e';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(2, 2);
-        ctx.lineTo(16, 0);
-        ctx.stroke();
+        if (flip) ctx.scale(-1, 1);
+        ctx.drawImage(img, -w * 0.35, -h * 0.45, w, h);
         ctx.restore();
     }
 
-    function _drawPuppetHand(ctx, x, y, flip) {
+    function _drawJointPatch(ctx, x, y, radius, color) {
         ctx.save();
-        ctx.translate(x, y);
-        ctx.scale(flip ? -1 : 1, 1);
-        ctx.fillStyle = '#150a26';
         ctx.beginPath();
-        ctx.arc(0, 0, 6, 0, Math.PI * 2);
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = color || '#2d1d26';
         ctx.fill();
-        ctx.fillStyle = '#f4ddb1';
-        ctx.beginPath();
-        ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-    }
-
-    function _drawPuppetHead(ctx, head, torso) {
-        if (!head || !torso) return;
-        var hcx = (head.px + head.ex) / 2;
-        var hcy = (head.py + head.ey) / 2;
-        var faceAngle = Math.atan2(torso.ey - torso.py, torso.ex - torso.px);
-        var faceDirX = Math.cos(faceAngle - Math.PI / 2);
-        var faceDirY = Math.sin(faceAngle - Math.PI / 2);
-        var sideX = -faceDirY;
-        var sideY = faceDirX;
-        var shiftX = Math.round(faceDirX * 2);
-        var shiftY = Math.round(faceDirY * 2);
-
-        ctx.save();
-        ctx.translate(hcx, hcy);
-
-        ctx.beginPath();
-        ctx.ellipse(0, 0, 23, 25, 0, 0, Math.PI * 2);
-        ctx.fillStyle = '#12091f';
-        ctx.fill();
-        ctx.beginPath();
-        ctx.ellipse(0, 1, 17, 20, 0, 0, Math.PI * 2);
-        ctx.fillStyle = '#f1d8af';
-        ctx.fill();
-
-        ctx.fillStyle = '#7d1833';
-        ctx.fillRect(-18, -18, 36, 8);
-        ctx.beginPath();
-        ctx.moveTo(-22, -10);
-        ctx.lineTo(0, -30);
-        ctx.lineTo(22, -10);
-        ctx.lineTo(18, -2);
-        ctx.lineTo(-18, -2);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#ffd75e';
-        ctx.fillRect(-12, -21, 24, 4);
-        ctx.fillStyle = '#00f0ff';
-        ctx.fillRect(-15, -14, 4, 3);
-        ctx.fillRect(11, -14, 4, 3);
-        ctx.fillStyle = '#ff4fb8';
-        ctx.fillRect(-3, -28, 6, 7);
-
-        ctx.fillStyle = '#7d1833';
-        ctx.fillRect(-24, -2, 6, 12);
-        ctx.fillRect(18, -2, 6, 12);
-        ctx.fillStyle = '#ffd75e';
-        ctx.fillRect(-23, 6, 5, 3);
-        ctx.fillRect(18, 6, 5, 3);
-
-        ctx.fillStyle = '#12091f';
-        ctx.fillRect(-7 + Math.round(sideX * 2) + shiftX, -4 + Math.round(sideY * 2) + shiftY, 4, 4);
-        ctx.fillRect(3 + Math.round(sideX * 2) + shiftX, -4 + Math.round(sideY * 2) + shiftY, 4, 4);
-        ctx.fillStyle = '#00f0ff';
-        ctx.fillRect(-8 + shiftX, -8 + shiftY, 6, 2);
-        ctx.fillRect(2 + shiftX, -8 + shiftY, 6, 2);
-        ctx.fillStyle = '#d75d69';
-        ctx.fillRect(-2 + shiftX, 0 + shiftY, 3, 4);
-        ctx.strokeStyle = '#12091f';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(-5 + shiftX, 7 + shiftY);
-        ctx.quadraticCurveTo(0 + shiftX, 10 + shiftY, 5 + shiftX, 7 + shiftY);
-        ctx.stroke();
-
-        ctx.fillStyle = '#f2ead9';
-        ctx.beginPath();
-        ctx.moveTo(-11, 10);
-        ctx.lineTo(11, 10);
-        ctx.lineTo(8, 18);
-        ctx.lineTo(-8, 18);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#d6c9ae';
-        ctx.fillRect(-7, 14, 14, 3);
-        ctx.fillStyle = '#ff4fb8';
-        ctx.fillRect(-4, 9, 8, 2);
-
-        ctx.restore();
-    }
-
-    function _drawTorsoDetails(ctx, torso) {
-        if (!torso) return;
-        var dx = torso.ex - torso.px;
-        var dy = torso.ey - torso.py;
-        var len = Math.sqrt(dx * dx + dy * dy) || 1;
-        var ang = Math.atan2(dy, dx);
-
-        ctx.save();
-        ctx.translate(torso.px, torso.py);
-        ctx.rotate(ang);
-
-        ctx.fillStyle = '#00f0ff';
-        ctx.fillRect(len * 0.18, -14, 4, 4);
-        ctx.fillRect(len * 0.64, 10, 4, 4);
-        ctx.fillStyle = '#ffd75e';
-        ctx.fillRect(len * 0.16, -4, Math.max(18, len * 0.46), 8);
-        ctx.fillStyle = '#fff1a6';
-        ctx.fillRect(len * 0.16, -4, Math.max(18, len * 0.46), 2);
-
-        ctx.fillStyle = '#b6314a';
-        ctx.fillRect(len * 0.56, -14, 8, 28);
-        ctx.fillRect(len * 0.68, -9, 4, 20);
-        ctx.fillStyle = '#150a26';
-        ctx.fillRect(len * 0.56, -14, 2, 28);
-
-        ctx.strokeStyle = '#00f0ff';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(len * 0.14, 0);
-        ctx.lineTo(len * 0.28, 0);
-        ctx.lineTo(len * 0.28, 10);
-        ctx.lineTo(len * 0.42, 10);
-        ctx.stroke();
-
-        ctx.strokeStyle = '#ff4fb8';
-        ctx.beginPath();
-        ctx.moveTo(len * 0.22, -10);
-        ctx.lineTo(len * 0.36, -10);
-        ctx.lineTo(len * 0.36, -18);
-        ctx.lineTo(len * 0.5, -18);
-        ctx.stroke();
-
         ctx.restore();
     }
 
@@ -1016,51 +806,54 @@ var StickmanScene = (function () {
     }
 
     function _drawStickman(ctx) {
-        var palette = {
-            robe: '#7b1d38',
-            robeDeep: '#150a26',
-            sleeve: '#98254b',
-            skin: '#f4ddb1',
-            leg: '#3b1a5f',
-            legDeep: '#281146'
-        };
-
-        var limbStyles = {
-            lShin: { fill: palette.leg, width: 20, trim: '#7cf7ff', pieceStyle: 'leg', neonA: '#00f0ff', neonB: '#b991ff' },
-            lThigh: { fill: palette.leg, width: 24, trim: '#7cf7ff', pieceStyle: 'leg', neonA: '#00f0ff', neonB: '#b991ff' },
-            rThigh: { fill: palette.legDeep, width: 24, trim: '#9f6fff', pieceStyle: 'leg', neonA: '#00f0ff', neonB: '#ff4fb8' },
-            rShin: { fill: palette.legDeep, width: 20, trim: '#9f6fff', pieceStyle: 'leg', neonA: '#00f0ff', neonB: '#ff4fb8' },
-            torso: { fill: palette.robe, width: 36, tailWidth: 34, trim: '#ffd75e', pieceStyle: 'robe', startFlare: 1.18, endFlare: 1.02, inner: '#b94768', shadow: '#2a0d20', neonA: '#00f0ff', neonB: '#ff4fb8' },
-            lUArm: { fill: palette.sleeve, width: 26, trim: '#ffd75e', pieceStyle: 'sleeve', startFlare: 1.28, endFlare: 1.12, inner: '#c03f69', neonA: '#00f0ff', neonB: '#ff4fb8' },
-            rUArm: { fill: palette.sleeve, width: 26, trim: '#ffd75e', pieceStyle: 'sleeve', startFlare: 1.28, endFlare: 1.12, inner: '#c03f69', neonA: '#00f0ff', neonB: '#ff4fb8' },
-            lFArm: { fill: palette.sleeve, width: 24, trim: '#ff9bc0', pieceStyle: 'sleeve', startFlare: 1.22, endFlare: 1.18, inner: '#cf4d78', neonA: '#00f0ff', neonB: '#ff4fb8' },
-            rFArm: { fill: palette.sleeve, width: 24, trim: '#ff9bc0', pieceStyle: 'sleeve', startFlare: 1.22, endFlare: 1.18, inner: '#cf4d78', neonA: '#00f0ff', neonB: '#ff4fb8' }
-        };
-
-        _drawSleeveTrail(ctx, _segMap['lUArm'], _segMap['lFArm'], 'rgba(122, 29, 56, 0.72)');
-        _drawSleeveTrail(ctx, _segMap['rUArm'], _segMap['rFArm'], 'rgba(122, 29, 56, 0.72)');
-
+        var torso = _segMap.torso;
+        var head = _segMap.head;
+        var lShin = _segMap.lShin;
+        var rShin = _segMap.rShin;
         var drawOrder = ['rThigh','rShin','lShin','lThigh','torso','lUArm','lFArm','rUArm','rFArm'];
+        var heights = {
+            torso: 72,
+            lUArm: 30,
+            lFArm: 28,
+            rUArm: 30,
+            rFArm: 28,
+            lThigh: 34,
+            lShin: 28,
+            rThigh: 34,
+            rShin: 28
+        };
+
         for (var di = 0; di < drawOrder.length; di++) {
             var s = _segMap[drawOrder[di]];
             if (!s) continue;
             if (s === _selectedSeg) _drawSelectionGlow(ctx, s);
-            _drawPuppetLimb(ctx, s, limbStyles[s.id]);
-            _drawPuppetJoint(ctx, s.px, s.py, s.id === 'torso' ? 9 : 7);
+
+            var img = s.id === 'torso' ? _spriteSet.torso :
+                (s.id.indexOf('Arm') !== -1 ? _spriteSet.arm : _spriteSet.leg);
+            var anchorX = s.id === 'torso' ? 0.08 : 0;
+            _drawBoneSprite(ctx, img, s.px, s.py, s.ex, s.ey, heights[s.id], anchorX);
         }
 
-        _drawTorsoDetails(ctx, _segMap['torso']);
+        for (var ji = 0; ji < drawOrder.length; ji++) {
+            var jointSeg = _segMap[drawOrder[ji]];
+            if (!jointSeg) continue;
+            _drawJointPatch(ctx, jointSeg.px, jointSeg.py, jointSeg.id === 'torso' ? 5 : 4, '#241521');
+        }
 
-        if (_segMap['head'] === _selectedSeg) _drawSelectionGlow(ctx, _segMap['head']);
-        _drawPuppetHead(ctx, _segMap['head'], _segMap['torso']);
+        if (head === _selectedSeg) _drawSelectionGlow(ctx, head);
+        _drawHeadSprite(ctx, head);
 
-        var lShin = _segMap['lShin'], rShin = _segMap['rShin'];
-        if (lShin) _drawPuppetFoot(ctx, lShin.px, lShin.py, true);
-        if (rShin) _drawPuppetFoot(ctx, rShin.ex, rShin.ey, false);
-
-        var lf = _segMap['lFArm'], rf = _segMap['rFArm'];
-        if (lf) _drawPuppetHand(ctx, lf.ex, lf.ey, true);
-        if (rf) _drawPuppetHand(ctx, rf.ex, rf.ey, false);
+        if (torso && head) {
+            _drawJointPatch(ctx, torso.ex, torso.ey, 4, '#2c1a24');
+        }
+        if (lShin) {
+            _drawJointPatch(ctx, lShin.ex, lShin.ey, 3, '#261925');
+            _drawFootSprite(ctx, lShin.px, lShin.py, true);
+        }
+        if (rShin) {
+            _drawJointPatch(ctx, rShin.ex, rShin.ey, 3, '#261925');
+            _drawFootSprite(ctx, rShin.ex, rShin.ey, false);
+        }
     }
 
     /* ====== 渲染循环 ====== */
