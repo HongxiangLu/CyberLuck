@@ -229,82 +229,234 @@ var StickmanScene = (function () {
     }
 
     /* ====== 绘制 ====== */
-    function _drawStickman(ctx) {
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
+    function _mixColor(hex1, hex2, t) {
+        var a = {
+            r: parseInt(hex1.slice(1, 3), 16),
+            g: parseInt(hex1.slice(3, 5), 16),
+            b: parseInt(hex1.slice(5, 7), 16)
+        };
+        var b = {
+            r: parseInt(hex2.slice(1, 3), 16),
+            g: parseInt(hex2.slice(3, 5), 16),
+            b: parseInt(hex2.slice(5, 7), 16)
+        };
+        var p = Math.max(0, Math.min(1, t));
+        var r = Math.round(a.r + (b.r - a.r) * p);
+        var g = Math.round(a.g + (b.g - a.g) * p);
+        var bl = Math.round(a.b + (b.b - a.b) * p);
+        return '#' + (1 << 24 | r << 16 | g << 8 | bl).toString(16).slice(1);
+    }
 
-        // 先画远离观者的部分（右腿），再画近处的
-        var drawOrder = ['rThigh','rShin','lShin','lThigh','torso','lUArm','lFArm','rUArm','rFArm','head'];
+    function _drawPixelLimb(ctx, s, opts) {
+        if (!s) return;
+        opts = opts || {};
+        var dx = s.ex - s.px;
+        var dy = s.ey - s.py;
+        var len = Math.sqrt(dx * dx + dy * dy) || 1;
+        var ang = Math.atan2(dy, dx);
+        var outer = Math.max(10, Math.round((opts.outer || (s.thick + 6)) / 2) * 2);
+        var inner = Math.max(6, Math.round((opts.inner || s.thick) / 2) * 2);
+        var border = opts.border || '#20102f';
+        var fill = opts.fill || s.color;
+        var highlight = opts.highlight || _mixColor(fill, '#ffffff', 0.24);
+        var shadow = opts.shadow || _mixColor(fill, '#000000', 0.22);
+        var inset = Math.max(2, Math.round(outer * 0.16));
+
+        ctx.save();
+        ctx.translate(s.px, s.py);
+        ctx.rotate(ang);
+
+        ctx.fillStyle = border;
+        ctx.fillRect(0, -outer / 2, len, outer);
+        ctx.fillRect(-4, -outer / 2 + 2, 4, outer - 4);
+        ctx.fillRect(len, -outer / 2 + 2, 4, outer - 4);
+
+        ctx.fillStyle = fill;
+        ctx.fillRect(inset, -inner / 2, Math.max(4, len - inset * 2), inner);
+
+        ctx.fillStyle = highlight;
+        ctx.fillRect(inset, -inner / 2, Math.max(4, len - inset * 2), Math.max(2, Math.round(inner * 0.2)));
+
+        ctx.fillStyle = shadow;
+        ctx.fillRect(inset, inner / 2 - Math.max(2, Math.round(inner * 0.18)), Math.max(4, len - inset * 2), Math.max(2, Math.round(inner * 0.18)));
+
+        if (opts.bandColor) {
+            var bandW = Math.max(4, Math.round(inner * 0.35));
+            var bandX = Math.max(inset + 4, len * (opts.bandRatio == null ? 0.58 : opts.bandRatio) - bandW / 2);
+            ctx.fillStyle = border;
+            ctx.fillRect(bandX - 1, -inner / 2, bandW + 2, inner);
+            ctx.fillStyle = opts.bandColor;
+            ctx.fillRect(bandX, -inner / 2 + 2, bandW, inner - 4);
+        }
+
+        ctx.restore();
+    }
+
+    function _drawPixelJoint(ctx, x, y, size, color) {
+        var jointSize = Math.max(6, Math.round(size || 8));
+        ctx.fillStyle = '#20102f';
+        ctx.fillRect(Math.round(x - jointSize / 2 - 1), Math.round(y - jointSize / 2 - 1), jointSize + 2, jointSize + 2);
+        ctx.fillStyle = color || '#e9ddff';
+        ctx.fillRect(Math.round(x - jointSize / 2), Math.round(y - jointSize / 2), jointSize, jointSize);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(Math.round(x - jointSize / 2), Math.round(y - jointSize / 2), jointSize, 2);
+    }
+
+    function _drawPixelFoot(ctx, x, y, flip) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(flip ? -1 : 1, 1);
+        ctx.fillStyle = '#20102f';
+        ctx.fillRect(-4, -4, 24, 10);
+        ctx.fillStyle = '#324b56';
+        ctx.fillRect(-2, -2, 18, 6);
+        ctx.fillStyle = '#5d7f89';
+        ctx.fillRect(-2, -2, 18, 2);
+        ctx.restore();
+    }
+
+    function _drawPixelHand(ctx, x, y, flip) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(flip ? -1 : 1, 1);
+        ctx.fillStyle = '#20102f';
+        ctx.fillRect(-4, -4, 12, 12);
+        ctx.fillStyle = '#f6d7b0';
+        ctx.fillRect(-2, -2, 8, 8);
+        ctx.restore();
+    }
+
+    function _drawPixelHead(ctx, head, torso) {
+        if (!head || !torso) return;
+        var hcx = (head.px + head.ex) / 2;
+        var hcy = (head.py + head.ey) / 2;
+        var faceAngle = Math.atan2(torso.ey - torso.py, torso.ex - torso.px);
+        var faceDirX = Math.cos(faceAngle - Math.PI / 2);
+        var faceDirY = Math.sin(faceAngle - Math.PI / 2);
+        var sideX = -faceDirY;
+        var sideY = faceDirX;
+
+        ctx.save();
+        ctx.translate(Math.round(hcx), Math.round(hcy));
+
+        ctx.fillStyle = '#20102f';
+        ctx.fillRect(-16, -20, 32, 32);
+        ctx.fillStyle = '#f6d7b0';
+        ctx.fillRect(-13, -17, 26, 26);
+
+        ctx.fillStyle = '#d7464f';
+        ctx.fillRect(-14, -20, 28, 8);
+        ctx.fillStyle = '#ffd75e';
+        ctx.fillRect(-6, -18, 12, 3);
+        ctx.fillStyle = '#8c2431';
+        ctx.fillRect(8, -23, 8, 7);
+
+        var eyeOffsetX = Math.round(sideX * 4);
+        var eyeOffsetY = Math.round(sideY * 4);
+        var faceShiftX = Math.round(faceDirX * 2);
+        var faceShiftY = Math.round(faceDirY * 2);
+
+        ctx.fillStyle = '#20102f';
+        ctx.fillRect(-6 + eyeOffsetX + faceShiftX, -4 + eyeOffsetY + faceShiftY, 3, 3);
+        ctx.fillRect(3 + eyeOffsetX + faceShiftX, -4 + eyeOffsetY + faceShiftY, 3, 3);
+        ctx.fillRect(-2 + faceShiftX, 2 + faceShiftY, 4, 2);
+
+        ctx.fillStyle = '#f1f3f8';
+        ctx.fillRect(-10, 8, 20, 8);
+        ctx.fillStyle = '#d8dde7';
+        ctx.fillRect(-8, 14, 16, 4);
+
+        ctx.restore();
+    }
+
+    function _drawTorsoDetails(ctx, torso) {
+        if (!torso) return;
+        var dx = torso.ex - torso.px;
+        var dy = torso.ey - torso.py;
+        var len = Math.sqrt(dx * dx + dy * dy) || 1;
+        var ang = Math.atan2(dy, dx);
+
+        ctx.save();
+        ctx.translate(torso.px, torso.py);
+        ctx.rotate(ang);
+
+        ctx.fillStyle = '#ffd75e';
+        ctx.fillRect(len * 0.22, -3, Math.max(10, len * 0.36), 6);
+        ctx.fillStyle = '#fff1a6';
+        ctx.fillRect(len * 0.22, -3, Math.max(10, len * 0.36), 2);
+
+        ctx.fillStyle = '#ff8a9f';
+        ctx.fillRect(len * 0.58, -10, 8, 20);
+        ctx.fillStyle = '#20102f';
+        ctx.fillRect(len * 0.58, -10, 2, 20);
+
+        ctx.restore();
+    }
+
+    function _drawSelectionGlow(ctx, s) {
+        if (!s) return;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 234, 0, 0.34)';
+        ctx.lineWidth = s.isHead ? 20 : (s.thick + 14);
+        ctx.lineCap = 'round';
+        if (s.isHead) {
+            var hcx = (s.px + s.ex) / 2;
+            var hcy = (s.py + s.ey) / 2;
+            ctx.beginPath();
+            ctx.arc(hcx, hcy, s.len * 0.9, 0, Math.PI * 2);
+            ctx.stroke();
+        } else {
+            ctx.beginPath();
+            ctx.moveTo(s.px, s.py);
+            ctx.lineTo(s.ex, s.ey);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
+    function _drawStickman(ctx) {
+        var palette = {
+            robe: '#c53a4a',
+            robeDeep: '#8e2434',
+            sleeve: '#b73141',
+            skin: '#f6d7b0',
+            jade: '#4f6b66',
+            jadeDeep: '#324b56'
+        };
+
+        var limbStyles = {
+            lShin: { fill: palette.jade, outer: 14, inner: 10 },
+            lThigh: { fill: palette.jade, outer: 16, inner: 12 },
+            rThigh: { fill: palette.jadeDeep, outer: 16, inner: 12 },
+            rShin: { fill: palette.jadeDeep, outer: 14, inner: 10 },
+            torso: { fill: palette.robe, outer: 22, inner: 18, bandColor: '#ffd75e', bandRatio: 0.46 },
+            lUArm: { fill: palette.sleeve, outer: 14, inner: 10 },
+            rUArm: { fill: palette.sleeve, outer: 14, inner: 10 },
+            lFArm: { fill: palette.skin, outer: 12, inner: 8 },
+            rFArm: { fill: palette.skin, outer: 12, inner: 8 }
+        };
+
+        var drawOrder = ['rThigh','rShin','lShin','lThigh','torso','lUArm','lFArm','rUArm','rFArm'];
         for (var di = 0; di < drawOrder.length; di++) {
             var s = _segMap[drawOrder[di]];
             if (!s) continue;
-
-            if (s.isHead) {
-                // 头部画圆
-                var hcx = (s.px + s.ex) / 2;
-                var hcy = (s.py + s.ey) / 2;
-                var hr = s.len * 0.7;
-                ctx.beginPath();
-                ctx.arc(hcx, hcy, hr, 0, Math.PI * 2);
-                ctx.fillStyle = s.color;
-                ctx.fill();
-                ctx.strokeStyle = '#CD853F';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                // 眼睛 — 根据 torso 方向确定朝向
-                var faceAngle = _segMap['torso'].angle;
-                var ex1x = hcx + Math.cos(faceAngle + 0.4) * hr * 0.4;
-                var ex1y = hcy + Math.sin(faceAngle + 0.4) * hr * 0.4;
-                var ex2x = hcx + Math.cos(faceAngle - 0.4) * hr * 0.4;
-                var ex2y = hcy + Math.sin(faceAngle - 0.4) * hr * 0.4;
-                ctx.fillStyle = '#000';
-                ctx.beginPath(); ctx.arc(ex1x, ex1y, 2, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(ex2x, ex2y, 2, 0, Math.PI*2); ctx.fill();
-            } else {
-                // 暗色描边（先画，在后面）
-                ctx.beginPath();
-                ctx.moveTo(s.px, s.py);
-                ctx.lineTo(s.ex, s.ey);
-                ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-                ctx.lineWidth = s.thick + 3;
-                ctx.stroke();
-                // 主体颜色（后画，在前面）
-                ctx.beginPath();
-                ctx.moveTo(s.px, s.py);
-                ctx.lineTo(s.ex, s.ey);
-                ctx.strokeStyle = s.color;
-                ctx.lineWidth = s.thick;
-                ctx.stroke();
-            }
-
-            // 关节圆点
-            ctx.beginPath();
-            ctx.arc(s.px, s.py, 4, 0, Math.PI * 2);
-            ctx.fillStyle = '#ddd';
-            ctx.fill();
-
-            // 高亮选中
-            if (s === _selectedSeg) {
-                ctx.beginPath();
-                ctx.moveTo(s.px, s.py);
-                ctx.lineTo(s.ex, s.ey);
-                ctx.strokeStyle = 'rgba(255,255,0,0.35)';
-                ctx.lineWidth = s.thick + 12;
-                ctx.stroke();
-            }
+            if (s === _selectedSeg) _drawSelectionGlow(ctx, s);
+            _drawPixelLimb(ctx, s, limbStyles[s.id]);
+            _drawPixelJoint(ctx, s.px, s.py, s.id === 'torso' ? 10 : 8, '#ddd6f7');
         }
 
-        // 脚 (小圆)
-        var lShin = _segMap['lShin'], rShin = _segMap['rShin'];
-        ctx.fillStyle = '#222';
-        if (lShin) { ctx.beginPath(); ctx.ellipse(lShin.px, lShin.py, 10, 5, 0, 0, Math.PI*2); ctx.fill(); }
-        if (rShin) { ctx.beginPath(); ctx.ellipse(rShin.ex, rShin.ey, 10, 5, 0, 0, Math.PI*2); ctx.fill(); }
+        _drawTorsoDetails(ctx, _segMap['torso']);
 
-        // 手 (小圆)
+        if (_segMap['head'] === _selectedSeg) _drawSelectionGlow(ctx, _segMap['head']);
+        _drawPixelHead(ctx, _segMap['head'], _segMap['torso']);
+
+        var lShin = _segMap['lShin'], rShin = _segMap['rShin'];
+        if (lShin) _drawPixelFoot(ctx, lShin.px, lShin.py, true);
+        if (rShin) _drawPixelFoot(ctx, rShin.ex, rShin.ey, false);
+
         var lf = _segMap['lFArm'], rf = _segMap['rFArm'];
-        ctx.fillStyle = '#FFDEAD';
-        if (lf) { ctx.beginPath(); ctx.arc(lf.ex, lf.ey, 5, 0, Math.PI*2); ctx.fill(); }
-        if (rf) { ctx.beginPath(); ctx.arc(rf.ex, rf.ey, 5, 0, Math.PI*2); ctx.fill(); }
+        if (lf) _drawPixelHand(ctx, lf.ex, lf.ey, true);
+        if (rf) _drawPixelHand(ctx, rf.ex, rf.ey, false);
     }
 
     /* ====== 渲染循环 ====== */
