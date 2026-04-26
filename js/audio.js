@@ -93,7 +93,7 @@ var Audio = (function () {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(150, now);
         osc.frequency.exponentialRampToValueAtTime(80, now + 0.15);
-        gain.gain.setValueAtTime(0.6, now);
+        gain.gain.setValueAtTime(3.0, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
         osc.connect(gain);
         gain.connect(ctx.destination);
@@ -110,7 +110,7 @@ var Audio = (function () {
         var noise = ctx.createBufferSource();
         noise.buffer = buffer;
         var noiseGain = ctx.createGain();
-        noiseGain.gain.setValueAtTime(0.3, now);
+        noiseGain.gain.setValueAtTime(1.5, now);
         noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
 
         // 带通滤波 — 木质感
@@ -141,7 +141,7 @@ var Audio = (function () {
             osc.frequency.value = freq;
             var t = now + idx * 0.08;
             gain.gain.setValueAtTime(0, t);
-            gain.gain.linearRampToValueAtTime(0.3, t + 0.02);
+            gain.gain.linearRampToValueAtTime(1.5, t + 0.02);
             gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
             osc.connect(gain);
             gain.connect(ctx.destination);
@@ -165,7 +165,7 @@ var Audio = (function () {
             osc.type = 'triangle';
             osc.frequency.setValueAtTime(300 + k * 100, t);
             osc.frequency.exponentialRampToValueAtTime(100, t + 0.15);
-            gain.gain.setValueAtTime(0.5, t);
+            gain.gain.setValueAtTime(2.5, t);
             gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
             osc.connect(gain);
             gain.connect(ctx.destination);
@@ -181,7 +181,7 @@ var Audio = (function () {
             var ns = ctx.createBufferSource();
             ns.buffer = buf;
             var ng = ctx.createGain();
-            ng.gain.setValueAtTime(0.25, t);
+            ng.gain.setValueAtTime(1.2, t);
             ng.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
             ns.connect(ng);
             ng.connect(ctx.destination);
@@ -201,7 +201,7 @@ var Audio = (function () {
         var gain = ctx.createGain();
         osc.type = 'sine';
         osc.frequency.value = 600;
-        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.setValueAtTime(0.8, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
         osc.connect(gain);
         gain.connect(ctx.destination);
