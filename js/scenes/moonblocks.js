@@ -192,7 +192,7 @@ var MoonBlocksScene = (function () {
         _dom.stick.classList.remove('is-rising');
         void _dom.tubeWrap.offsetWidth;
         _dom.tubeWrap.classList.add('is-shaking');
-        Device.tapVibrate();
+        Device.continuousVibrate(1500);
 
         _stickTimers.push(window.setTimeout(function () {
             if (!_dom) return;

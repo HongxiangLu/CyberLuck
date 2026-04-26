@@ -130,10 +130,13 @@ var Device = (function () {
         motionListeners = [];
     }
 
-    /** 震动封装 — iOS 不支持时静默降级 */
+    /** 震动封装 — iOS 不支持时静默降级，尽可能适配微信环境 */
     function vibrate(pattern) {
         try {
-            if (navigator.vibrate) {
+            // 尝试微信内置的 JSBridge (对 iOS 微信内置浏览器有效)
+            if (typeof WeixinJSBridge !== 'undefined' && WeixinJSBridge.invoke) {
+                WeixinJSBridge.invoke('vibrateShort', {}, function () {});
+            } else if (navigator.vibrate) {
                 navigator.vibrate(pattern);
             }
         } catch (e) { /* 静默 */ }
@@ -144,6 +147,17 @@ var Device = (function () {
 
     /** 中等震动 */
     function mediumVibrate() { vibrate([30, 50, 80]); }
+
+    /** 持续震动（针对摇签筒等持续动作） */
+    function continuousVibrate(duration) {
+        var pattern = [];
+        var count = Math.floor(duration / 100);
+        for (var i = 0; i < count; i++) {
+            pattern.push(60);
+            pattern.push(40);
+        }
+        vibrate(pattern);
+    }
 
     /** 是否已获得权限 */
     function isMotionGranted() { return motionGranted; }
@@ -172,6 +186,7 @@ var Device = (function () {
         clearAll: clearAll,
         vibrate: vibrate,
         tapVibrate: tapVibrate,
-        mediumVibrate: mediumVibrate
+        mediumVibrate: mediumVibrate,
+        continuousVibrate: continuousVibrate
     };
 })();
