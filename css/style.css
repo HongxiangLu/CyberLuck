@@ -224,16 +224,29 @@ html, body {
     inset: 0;
     z-index: 70;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 24px 18px;
+    padding: max(32px, env(safe-area-inset-top)) 18px 32px;
     pointer-events: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.fortune-overlay::before,
+.fortune-overlay::after {
+    content: "";
+    flex: auto;
+}
+
+.fortune-overlay[hidden] {
+    display: none !important;
 }
 
 .fortune-shell {
     position: relative;
     width: min(92vw, 430px);
     isolation: isolate;
+    flex-shrink: 0;
 }
 
 .fortune-panel {
