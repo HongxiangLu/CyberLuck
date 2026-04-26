@@ -15,15 +15,19 @@ var StickmanScene = (function () {
     var _selectedSeg = null;
     var _dragStartAngle = 0;
     var _dragPivotX = 0, _dragPivotY = 0;
+    var _dropProgress = 1;
+    var _dropDuration = 0.55;
+    var _dropFromPose = null;
+    var _dropToPose = null;
+    var _resultMeta = null;
 
     var _touchStartH = null, _touchMoveH = null, _touchEndH = null;
 
     /* ====== 骨骼初始化 ====== */
     function _initSegments() {
-        var leftFootX = W * 0.46;
-        var rightFootX = W * 0.54;
-        var shin = 55, thigh = 50, torso = 65, headL = 22;
-        var uArm = 40, fArm = 35;
+        var leftFootX = W * 0.47;
+        var shin = 70, thigh = 66, torso = 88, headL = 28;
+        var uArm = 54, fArm = 48;
 
         // angle: 绝对世界角 (0=正上方, PI/2=右, PI=下, -PI/2=左)
         // attachRatio: 在 parent 线段上的比例位置 (0=pivot端, 1=end端)
@@ -67,6 +71,115 @@ var StickmanScene = (function () {
         // 设置 root 的固定 pivot Y
         _segments[0].fpy = FLOOR_Y;
         _computeFK();
+    }
+
+    function _buildBowPose() {
+        return {
+            lShin: 0.03,
+            lThigh: 0.12,
+            torso: 0.68,
+            head: 0.76,
+            lUArm: 1.72,
+            lFArm: 1.08,
+            rUArm: 1.46,
+            rFArm: 1.88,
+            rThigh: Math.PI - 0.16,
+            rShin: Math.PI - 0.06
+        };
+    }
+
+    function _buildLoosePose() {
+        return {
+            lShin: 0.04,
+            lThigh: -0.12,
+            torso: 0.22,
+            head: 0.28,
+            lUArm: 2.56,
+            lFArm: 2.9,
+            rUArm: 3.64,
+            rFArm: 3.28,
+            rThigh: Math.PI + 0.16,
+            rShin: Math.PI + 0.04
+        };
+    }
+
+    function _capturePose() {
+        var pose = {};
+        for (var i = 0; i < _segments.length; i++) {
+            pose[_segments[i].id] = _segments[i].angle;
+        }
+        return pose;
+    }
+
+    function _normalizeAngle(a) {
+        while (a > Math.PI) a -= Math.PI * 2;
+        while (a < -Math.PI) a += Math.PI * 2;
+        return a;
+    }
+
+    function _lerpAngle(a, b, t) {
+        return a + _normalizeAngle(b - a) * t;
+    }
+
+    function _applyPose(pose) {
+        for (var i = 0; i < _segments.length; i++) {
+            if (pose[_segments[i].id] == null) continue;
+            _segments[i].angle = pose[_segments[i].id];
+        }
+        _computeFK();
+    }
+
+    function _applyPoseBlend(fromPose, toPose, t) {
+        for (var i = 0; i < _segments.length; i++) {
+            var seg = _segments[i];
+            var from = fromPose[seg.id];
+            var to = toPose[seg.id];
+            if (from == null || to == null) continue;
+            seg.angle = _lerpAngle(from, to, t);
+        }
+        _computeFK();
+    }
+
+    function _easeOutCubic(t) {
+        return 1 - Math.pow(1 - Math.max(0, Math.min(1, t)), 3);
+    }
+
+    function _getFloatAnchor() {
+        return {
+            x: W * 0.47,
+            y: H * 0.67
+        };
+    }
+
+    function _getGroundAnchor() {
+        return {
+            x: W * 0.47,
+            y: FLOOR_Y
+        };
+    }
+
+    function _setRootAnchor(x, y) {
+        _segments[0].fpx = x;
+        _segments[0].fpy = y;
+    }
+
+    function _placePrepareFigure() {
+        var anchor = _getFloatAnchor();
+        _setRootAnchor(anchor.x, anchor.y);
+        _applyPose(_buildBowPose());
+        _dropProgress = 1;
+    }
+
+    function _startChallenge() {
+        Audio.playTap();
+        _phase = 'playing';
+        _selectedSeg = null;
+        _resultMeta = null;
+        _dropProgress = 0;
+        _dropFromPose = _capturePose();
+        _dropToPose = _buildLoosePose();
+        _lastTime = performance.now();
+        _setupUI();
     }
 
     /* ====== 前向运动学 ====== */
@@ -120,11 +233,14 @@ var StickmanScene = (function () {
         _timer = 8;
         _time = 0;
         _selectedSeg = null;
+        _resultMeta = null;
+        _dropProgress = 1;
         W = Engine.width();
         H = Engine.height();
         FLOOR_Y = H * 0.82;
 
         _initSegments();
+        _placePrepareFigure();
         _setupUI();
         _bindTouch();
         _lastTime = performance.now();
@@ -139,10 +255,10 @@ var StickmanScene = (function () {
                 borderColor:'rgba(255,255,255,0.15)', fontSize:13, radius:18,
                 onClick:function(){ App.switchScene('home'); } });
             var bw = Math.min(W*0.6,220);
-            UI.createButton({ x:(W-bw)/2, y:H*0.7, w:bw, h:52, text:'开始挑战',
+            UI.createButton({ x:(W-bw)/2, y:H*0.76, w:bw, h:52, text:'开始挑战',
                 color:'#FFF', bgColor:'rgba(250,128,114,0.3)',
                 borderColor:'rgba(250,128,114,0.8)', fontSize:18, radius:26,
-                onClick:function(){ Audio.playTap(); _phase='playing'; _lastTime=performance.now(); _setupUI(); } });
+                onClick:_startChallenge });
         } else if (_phase === 'result') {
             var bw2 = Math.min(W*0.42,155);
             UI.createButton({ x:W/2-bw2-8, y:H*0.88, w:bw2, h:46, text:'重来',
@@ -166,7 +282,7 @@ var StickmanScene = (function () {
 
         _touchStartH = function (e) {
             e.preventDefault();
-            if (_phase !== 'playing') return;
+            if (_phase !== 'playing' || _dropProgress < 1) return;
             var pos = _touchPos(e);
             // 寻找被点击的肢节
             var best = null, bestD = 30;
@@ -186,7 +302,7 @@ var StickmanScene = (function () {
 
         _touchMoveH = function (e) {
             e.preventDefault();
-            if (!_selectedSeg || _phase !== 'playing') return;
+            if (!_selectedSeg || _phase !== 'playing' || _dropProgress < 1) return;
             var pos = _touchPos(e);
             var newAngle = Math.atan2(pos.x - _dragPivotX, -(pos.y - _dragPivotY));
             var delta = newAngle - _dragStartAngle;
@@ -228,6 +344,81 @@ var StickmanScene = (function () {
         return Math.sqrt((px-cx)*(px-cx)+(py-cy)*(py-cy));
     }
 
+    function _getNodeSnapshot() {
+        var head = _segMap.head;
+        var lFArm = _segMap.lFArm;
+        var rFArm = _segMap.rFArm;
+        var lShin = _segMap.lShin;
+        var rShin = _segMap.rShin;
+        var torso = _segMap.torso;
+        var rThigh = _segMap.rThigh;
+
+        var pelvisX = ((torso ? torso.px : W * 0.5) + (rThigh ? rThigh.px : W * 0.5)) / 2;
+        var pelvisY = ((torso ? torso.py : H * 0.6) + (rThigh ? rThigh.px != null ? rThigh.py : H * 0.6 : H * 0.6)) / 2;
+
+        return {
+            head: head ? { x: (head.px + head.ex) / 2, y: (head.py + head.ey) / 2 } : null,
+            leftHand: lFArm ? { x: lFArm.ex, y: lFArm.ey } : null,
+            rightHand: rFArm ? { x: rFArm.ex, y: rFArm.ey } : null,
+            leftKnee: lShin ? { x: lShin.ex, y: lShin.ey } : null,
+            rightKnee: rShin ? { x: rShin.ex, y: rShin.ey } : null,
+            pelvis: { x: pelvisX, y: pelvisY },
+            torso: torso ? { x: torso.px, y: torso.py, ex: torso.ex, ey: torso.ey } : null
+        };
+    }
+
+    function _evaluatePoseResult() {
+        var nodes = _getNodeSnapshot();
+        var head = nodes.head || { x: W * 0.5, y: H * 0.3 };
+        var leftHand = nodes.leftHand || { x: W * 0.45, y: H * 0.45 };
+        var rightHand = nodes.rightHand || { x: W * 0.55, y: H * 0.45 };
+        var leftKnee = nodes.leftKnee || { x: W * 0.45, y: FLOOR_Y };
+        var rightKnee = nodes.rightKnee || { x: W * 0.55, y: FLOOR_Y };
+        var pelvis = nodes.pelvis || { x: W * 0.5, y: H * 0.55 };
+        var kneeNearFloorThreshold = Math.max(18, H * 0.035);
+        var torsoTiltThreshold = Math.max(42, W * 0.12);
+
+        var bothKneesNearFloor = Math.abs(FLOOR_Y - leftKnee.y) <= kneeNearFloorThreshold &&
+            Math.abs(FLOOR_Y - rightKnee.y) <= kneeNearFloorThreshold;
+        var handsAboveHead = leftHand.y <= head.y && rightHand.y <= head.y;
+        var torsoTwisted = Math.abs(head.x - pelvis.x) > torsoTiltThreshold;
+        var headBelowPelvis = head.y >= pelvis.y;
+
+        if (headBelowPelvis && bothKneesNearFloor) {
+            return {
+                key: 'kowtow',
+                tag: '至诚磕头，万事顺遂',
+                quote: '诚心跪拜，霉运清零，财运福气双双到',
+                nodes: nodes
+            };
+        }
+
+        if (handsAboveHead) {
+            return {
+                key: 'wild',
+                tag: '拳脚拜年，百无禁忌',
+                quote: '不走寻常拜年路，自在逍遥无烦恼',
+                nodes: nodes
+            };
+        }
+
+        if (torsoTwisted) {
+            return {
+                key: 'tilted',
+                tag: '歪门邪道，好运绕道',
+                quote: '姿势不正福气偏，新一年主打随性自由',
+                nodes: nodes
+            };
+        }
+
+        return {
+            key: 'formal',
+            tag: '规规矩矩，岁岁平安',
+            quote: '礼数周全，神明偏爱，全年顺风顺水',
+            nodes: nodes
+        };
+    }
+
     /* ====== 绘制 ====== */
     function _mixColor(hex1, hex2, t) {
         var a = {
@@ -247,86 +438,184 @@ var StickmanScene = (function () {
         return '#' + (1 << 24 | r << 16 | g << 8 | bl).toString(16).slice(1);
     }
 
-    function _drawPixelLimb(ctx, s, opts) {
+    function _drawPuppetLimb(ctx, s, opts) {
         if (!s) return;
         opts = opts || {};
         var dx = s.ex - s.px;
         var dy = s.ey - s.py;
         var len = Math.sqrt(dx * dx + dy * dy) || 1;
         var ang = Math.atan2(dy, dx);
-        var outer = Math.max(10, Math.round((opts.outer || (s.thick + 6)) / 2) * 2);
-        var inner = Math.max(6, Math.round((opts.inner || s.thick) / 2) * 2);
-        var border = opts.border || '#20102f';
-        var fill = opts.fill || s.color;
-        var highlight = opts.highlight || _mixColor(fill, '#ffffff', 0.24);
-        var shadow = opts.shadow || _mixColor(fill, '#000000', 0.22);
-        var inset = Math.max(2, Math.round(outer * 0.16));
+        var width = opts.width || (s.thick + 12);
+        var tailWidth = opts.tailWidth || width * 0.82;
+        var border = opts.border || '#150a26';
+        var fill = opts.fill || '#6d1f35';
+        var trim = opts.trim || '#ffd75e';
+        var highlight = opts.highlight || _mixColor(fill, '#ffffff', 0.18);
+        var shadow = opts.shadow || _mixColor(fill, '#12091f', 0.48);
+        var neonA = opts.neonA || '#00f0ff';
+        var neonB = opts.neonB || '#ff4fb8';
+        var innerInset = Math.max(4, Math.round(width * 0.16));
+        var startFlare = opts.startFlare || 1.12;
+        var endFlare = opts.endFlare || 0.9;
+        var notch = Math.max(4, width * 0.16);
+        var circuitry = opts.circuitry !== false;
+        var stripeCount = opts.stripeCount || 2;
 
         ctx.save();
         ctx.translate(s.px, s.py);
         ctx.rotate(ang);
 
+        ctx.beginPath();
+        ctx.moveTo(-notch, -width * startFlare * 0.46);
+        ctx.lineTo(len * 0.18, -width * 0.56);
+        ctx.lineTo(len + notch, -tailWidth * endFlare * 0.46);
+        ctx.lineTo(len + notch, tailWidth * endFlare * 0.46);
+        ctx.lineTo(len * 0.18, width * 0.56);
+        ctx.lineTo(-notch, width * startFlare * 0.46);
+        ctx.closePath();
         ctx.fillStyle = border;
-        ctx.fillRect(0, -outer / 2, len, outer);
-        ctx.fillRect(-4, -outer / 2 + 2, 4, outer - 4);
-        ctx.fillRect(len, -outer / 2 + 2, 4, outer - 4);
+        ctx.fill();
 
+        ctx.beginPath();
+        ctx.moveTo(0, -width * 0.38);
+        ctx.lineTo(len * 0.2, -width * 0.42);
+        ctx.lineTo(len, -tailWidth * 0.34);
+        ctx.lineTo(len, tailWidth * 0.34);
+        ctx.lineTo(len * 0.2, width * 0.42);
+        ctx.lineTo(0, width * 0.38);
+        ctx.closePath();
         ctx.fillStyle = fill;
-        ctx.fillRect(inset, -inner / 2, Math.max(4, len - inset * 2), inner);
+        ctx.fill();
 
         ctx.fillStyle = highlight;
-        ctx.fillRect(inset, -inner / 2, Math.max(4, len - inset * 2), Math.max(2, Math.round(inner * 0.2)));
-
+        ctx.fillRect(innerInset, -width * 0.26, Math.max(8, len - innerInset * 2), 2);
         ctx.fillStyle = shadow;
-        ctx.fillRect(inset, inner / 2 - Math.max(2, Math.round(inner * 0.18)), Math.max(4, len - inset * 2), Math.max(2, Math.round(inner * 0.18)));
+        ctx.fillRect(innerInset, width * 0.18, Math.max(8, len - innerInset * 2), 2);
 
-        if (opts.bandColor) {
-            var bandW = Math.max(4, Math.round(inner * 0.35));
-            var bandX = Math.max(inset + 4, len * (opts.bandRatio == null ? 0.58 : opts.bandRatio) - bandW / 2);
-            ctx.fillStyle = border;
-            ctx.fillRect(bandX - 1, -inner / 2, bandW + 2, inner);
-            ctx.fillStyle = opts.bandColor;
-            ctx.fillRect(bandX, -inner / 2 + 2, bandW, inner - 4);
+        ctx.strokeStyle = trim;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(4, -width * 0.26);
+        ctx.lineTo(len - 4, -tailWidth * 0.2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(4, width * 0.26);
+        ctx.lineTo(len - 4, tailWidth * 0.2);
+        ctx.stroke();
+
+        for (var si = 0; si < stripeCount; si++) {
+            var ratio = (si + 1) / (stripeCount + 1);
+            var sx = len * (0.16 + ratio * 0.58);
+            ctx.fillStyle = trim;
+            ctx.fillRect(sx, -width * 0.18, 3, width * 0.36);
+        }
+
+        if (circuitry) {
+            ctx.strokeStyle = neonA;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(len * 0.18, 0);
+            ctx.lineTo(len * 0.44, 0);
+            ctx.lineTo(len * 0.58, -width * 0.12);
+            ctx.lineTo(len * 0.72, -width * 0.12);
+            ctx.stroke();
+
+            ctx.strokeStyle = neonB;
+            ctx.beginPath();
+            ctx.moveTo(len * 0.22, width * 0.08);
+            ctx.lineTo(len * 0.4, width * 0.08);
+            ctx.lineTo(len * 0.52, width * 0.2);
+            ctx.lineTo(len * 0.72, width * 0.2);
+            ctx.stroke();
+
+            ctx.fillStyle = neonA;
+            ctx.fillRect(len * 0.43, -1.5, 4, 4);
+            ctx.fillStyle = neonB;
+            ctx.fillRect(len * 0.5, width * 0.18 - 1, 4, 4);
+        }
+
+        if (opts.cutoutCount) {
+            ctx.fillStyle = opts.cutout || '#ffefb3';
+            for (var i = 0; i < opts.cutoutCount; i++) {
+                var t = (i + 1) / (opts.cutoutCount + 1);
+                var cx = len * (0.2 + t * 0.56);
+                ctx.beginPath();
+                ctx.arc(cx, 0, Math.max(2, width * 0.08), 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
 
         ctx.restore();
     }
 
-    function _drawPixelJoint(ctx, x, y, size, color) {
-        var jointSize = Math.max(6, Math.round(size || 8));
-        ctx.fillStyle = '#20102f';
-        ctx.fillRect(Math.round(x - jointSize / 2 - 1), Math.round(y - jointSize / 2 - 1), jointSize + 2, jointSize + 2);
-        ctx.fillStyle = color || '#e9ddff';
-        ctx.fillRect(Math.round(x - jointSize / 2), Math.round(y - jointSize / 2), jointSize, jointSize);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(Math.round(x - jointSize / 2), Math.round(y - jointSize / 2), jointSize, 2);
-    }
-
-    function _drawPixelFoot(ctx, x, y, flip) {
+    function _drawPuppetJoint(ctx, x, y, size) {
+        var r = Math.max(6, size || 8);
         ctx.save();
-        ctx.translate(x, y);
-        ctx.scale(flip ? -1 : 1, 1);
-        ctx.fillStyle = '#20102f';
-        ctx.fillRect(-4, -4, 24, 10);
-        ctx.fillStyle = '#324b56';
-        ctx.fillRect(-2, -2, 18, 6);
-        ctx.fillStyle = '#5d7f89';
-        ctx.fillRect(-2, -2, 18, 2);
+        ctx.shadowColor = '#00f0ff';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(x, y, r + 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#150a26';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = '#1d1538';
+        ctx.fill();
+        for (var i = 0; i < 6; i++) {
+            var a = (Math.PI * 2 / 6) * i;
+            var gx = x + Math.cos(a) * (r + 1);
+            var gy = y + Math.sin(a) * (r + 1);
+            ctx.fillStyle = i % 2 ? '#ff4fb8' : '#00f0ff';
+            ctx.fillRect(Math.round(gx - 1.5), Math.round(gy - 1.5), 3, 3);
+        }
+        ctx.beginPath();
+        ctx.arc(x, y, r * 0.54, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffd75e';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x, y, r * 0.24, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff6b1';
+        ctx.fill();
         ctx.restore();
     }
 
-    function _drawPixelHand(ctx, x, y, flip) {
+    function _drawPuppetFoot(ctx, x, y, flip) {
         ctx.save();
         ctx.translate(x, y);
         ctx.scale(flip ? -1 : 1, 1);
-        ctx.fillStyle = '#20102f';
-        ctx.fillRect(-4, -4, 12, 12);
-        ctx.fillStyle = '#f6d7b0';
-        ctx.fillRect(-2, -2, 8, 8);
+        ctx.fillStyle = '#150a26';
+        ctx.beginPath();
+        ctx.moveTo(-6, 1);
+        ctx.lineTo(18, -2);
+        ctx.lineTo(22, 4);
+        ctx.lineTo(0, 8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#ffd75e';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(2, 2);
+        ctx.lineTo(16, 0);
+        ctx.stroke();
         ctx.restore();
     }
 
-    function _drawPixelHead(ctx, head, torso) {
+    function _drawPuppetHand(ctx, x, y, flip) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(flip ? -1 : 1, 1);
+        ctx.fillStyle = '#150a26';
+        ctx.beginPath();
+        ctx.arc(0, 0, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#f4ddb1';
+        ctx.beginPath();
+        ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    function _drawPuppetHead(ctx, head, torso) {
         if (!head || !torso) return;
         var hcx = (head.px + head.ex) / 2;
         var hcy = (head.py + head.ey) / 2;
@@ -337,34 +626,73 @@ var StickmanScene = (function () {
         var sideY = faceDirX;
 
         ctx.save();
-        ctx.translate(Math.round(hcx), Math.round(hcy));
+        ctx.translate(hcx, hcy);
+        ctx.shadowColor = '#00f0ff';
+        ctx.shadowBlur = 8;
 
-        ctx.fillStyle = '#20102f';
-        ctx.fillRect(-16, -20, 32, 32);
-        ctx.fillStyle = '#f6d7b0';
-        ctx.fillRect(-13, -17, 26, 26);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 21, 24, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#150a26';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(0, 1, 16, 19, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#f3d7ae';
+        ctx.fill();
 
-        ctx.fillStyle = '#d7464f';
-        ctx.fillRect(-14, -20, 28, 8);
+        ctx.beginPath();
+        ctx.moveTo(-22, -10);
+        ctx.lineTo(0, -28);
+        ctx.lineTo(22, -10);
+        ctx.lineTo(19, -1);
+        ctx.lineTo(-19, -1);
+        ctx.closePath();
+        ctx.fillStyle = '#7a1730';
+        ctx.fill();
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(-14, -12, 4, 3);
+        ctx.fillRect(10, -12, 4, 3);
+
         ctx.fillStyle = '#ffd75e';
-        ctx.fillRect(-6, -18, 12, 3);
-        ctx.fillStyle = '#8c2431';
-        ctx.fillRect(8, -23, 8, 7);
+        ctx.fillRect(-8, -18, 16, 4);
+        ctx.beginPath();
+        ctx.arc(-16, -6, 4, 0, Math.PI * 2);
+        ctx.arc(16, -6, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ff4fb8';
+        ctx.fillRect(-3, -26, 6, 7);
 
         var eyeOffsetX = Math.round(sideX * 4);
         var eyeOffsetY = Math.round(sideY * 4);
         var faceShiftX = Math.round(faceDirX * 2);
         var faceShiftY = Math.round(faceDirY * 2);
 
-        ctx.fillStyle = '#20102f';
-        ctx.fillRect(-6 + eyeOffsetX + faceShiftX, -4 + eyeOffsetY + faceShiftY, 3, 3);
-        ctx.fillRect(3 + eyeOffsetX + faceShiftX, -4 + eyeOffsetY + faceShiftY, 3, 3);
-        ctx.fillRect(-2 + faceShiftX, 2 + faceShiftY, 4, 2);
+        ctx.fillStyle = '#150a26';
+        ctx.beginPath();
+        ctx.arc(-4 + eyeOffsetX + faceShiftX, -3 + eyeOffsetY + faceShiftY, 2.1, 0, Math.PI * 2);
+        ctx.arc(4 + eyeOffsetX + faceShiftX, -3 + eyeOffsetY + faceShiftY, 2.1, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(-7 + eyeOffsetX + faceShiftX, -7 + eyeOffsetY + faceShiftY, 6, 1.5);
+        ctx.fillRect(1 + eyeOffsetX + faceShiftX, -7 + eyeOffsetY + faceShiftY, 6, 1.5);
+        ctx.beginPath();
+        ctx.moveTo(-4 + faceShiftX, 5 + faceShiftY);
+        ctx.quadraticCurveTo(0 + faceShiftX, 8 + faceShiftY, 4 + faceShiftX, 5 + faceShiftY);
+        ctx.strokeStyle = '#150a26';
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
 
-        ctx.fillStyle = '#f1f3f8';
-        ctx.fillRect(-10, 8, 20, 8);
-        ctx.fillStyle = '#d8dde7';
-        ctx.fillRect(-8, 14, 16, 4);
+        ctx.fillStyle = '#f2ead9';
+        ctx.beginPath();
+        ctx.moveTo(-10, 10);
+        ctx.lineTo(10, 10);
+        ctx.lineTo(7, 18);
+        ctx.lineTo(-7, 18);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#d7cbb5';
+        ctx.fillRect(-6, 14, 12, 3);
+        ctx.fillStyle = '#ff4fb8';
+        ctx.fillRect(-3, 9, 6, 2);
 
         ctx.restore();
     }
@@ -380,16 +708,210 @@ var StickmanScene = (function () {
         ctx.translate(torso.px, torso.py);
         ctx.rotate(ang);
 
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(len * 0.18, -14, 4, 4);
+        ctx.fillRect(len * 0.64, 10, 4, 4);
         ctx.fillStyle = '#ffd75e';
-        ctx.fillRect(len * 0.22, -3, Math.max(10, len * 0.36), 6);
+        ctx.fillRect(len * 0.16, -4, Math.max(18, len * 0.46), 8);
         ctx.fillStyle = '#fff1a6';
-        ctx.fillRect(len * 0.22, -3, Math.max(10, len * 0.36), 2);
+        ctx.fillRect(len * 0.16, -4, Math.max(18, len * 0.46), 2);
 
-        ctx.fillStyle = '#ff8a9f';
-        ctx.fillRect(len * 0.58, -10, 8, 20);
-        ctx.fillStyle = '#20102f';
-        ctx.fillRect(len * 0.58, -10, 2, 20);
+        ctx.fillStyle = '#b6314a';
+        ctx.fillRect(len * 0.56, -14, 8, 28);
+        ctx.fillRect(len * 0.68, -9, 4, 20);
+        ctx.fillStyle = '#150a26';
+        ctx.fillRect(len * 0.56, -14, 2, 28);
 
+        ctx.strokeStyle = '#00f0ff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(len * 0.14, 0);
+        ctx.lineTo(len * 0.28, 0);
+        ctx.lineTo(len * 0.28, 10);
+        ctx.lineTo(len * 0.42, 10);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#ff4fb8';
+        ctx.beginPath();
+        ctx.moveTo(len * 0.22, -10);
+        ctx.lineTo(len * 0.36, -10);
+        ctx.lineTo(len * 0.36, -18);
+        ctx.lineTo(len * 0.5, -18);
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    function _drawCharacterShadow(ctx, cx, y, scale, alpha) {
+        ctx.save();
+        ctx.globalAlpha = alpha == null ? 0.24 : alpha;
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.ellipse(cx, y, 48 * (scale || 1), 12 * (scale || 1), 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    function _drawDataStream(ctx, x, y, h, colorA, colorB) {
+        ctx.save();
+        for (var i = 0; i < h; i += 10) {
+            ctx.fillStyle = (i / 10) % 2 === 0 ? colorA : colorB;
+            ctx.fillRect(x, y + i, 4, 6);
+        }
+        ctx.restore();
+    }
+
+    function _drawTempleBeacon(ctx, x, y, scale) {
+        var s = scale || 1;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.fillStyle = '#150a26';
+        ctx.fillRect(-14 * s, -56 * s, 28 * s, 80 * s);
+        ctx.fillStyle = '#2a184d';
+        ctx.fillRect(-10 * s, -52 * s, 20 * s, 72 * s);
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(-6 * s, -46 * s, 12 * s, 48 * s);
+        ctx.fillStyle = '#ff4fb8';
+        ctx.fillRect(-6 * s, 6 * s, 12 * s, 8 * s);
+        ctx.fillStyle = '#ffd75e';
+        ctx.fillRect(-16 * s, 20 * s, 32 * s, 8 * s);
+        ctx.restore();
+    }
+
+    function _drawCyberTempleBackdrop(ctx, w, h) {
+        var panelX = w * 0.11;
+        var panelY = h * 0.27;
+        var panelW = w * 0.78;
+        var panelH = h * 0.47;
+        var altarY = panelY + panelH * 0.78;
+
+        Draw.drawPanel(ctx, panelX, panelY, panelW, panelH, '#140d30', '#00f0ff', '#ff4fb8', '#0a0615');
+
+        ctx.fillStyle = '#221247';
+        ctx.fillRect(panelX + 12, panelY + 12, panelW - 24, panelH - 24);
+
+        for (var gx = panelX + 22; gx < panelX + panelW - 22; gx += 24) {
+            ctx.fillStyle = 'rgba(0, 240, 255, 0.18)';
+            ctx.fillRect(gx, panelY + 16, 2, panelH - 32);
+        }
+        for (var gy = panelY + 22; gy < panelY + panelH - 22; gy += 22) {
+            ctx.fillStyle = 'rgba(255, 79, 184, 0.14)';
+            ctx.fillRect(panelX + 16, gy, panelW - 32, 2);
+        }
+
+        ctx.fillStyle = '#10081d';
+        ctx.fillRect(w / 2 - 94, panelY + 44, 188, 156);
+        ctx.fillStyle = '#2b1550';
+        ctx.fillRect(w / 2 - 82, panelY + 56, 164, 132);
+
+        ctx.fillStyle = '#150a26';
+        ctx.fillRect(w / 2 - 44, panelY + 14, 88, 28);
+        ctx.fillStyle = '#ff4fb8';
+        ctx.fillRect(w / 2 - 38, panelY + 20, 76, 18);
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(w / 2 - 6, panelY + 20, 12, 18);
+
+        _drawTempleBeacon(ctx, panelX + 42, altarY - 30, 1);
+        _drawTempleBeacon(ctx, panelX + panelW - 42, altarY - 30, 1);
+        _drawDataStream(ctx, panelX + 44, panelY + 12, 84, '#00f0ff', '#ff4fb8');
+        _drawDataStream(ctx, panelX + panelW - 48, panelY + 12, 84, '#ff4fb8', '#00f0ff');
+
+        ctx.fillStyle = '#150a26';
+        ctx.fillRect(w / 2 - 110, altarY - 4, 220, 30);
+        ctx.fillStyle = '#392065';
+        ctx.fillRect(w / 2 - 98, altarY + 2, 196, 18);
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(w / 2 - 92, altarY + 2, 184, 4);
+        ctx.fillStyle = '#ff4fb8';
+        ctx.fillRect(w / 2 - 82, altarY + 12, 164, 4);
+
+        ctx.fillStyle = '#ffd75e';
+        ctx.fillRect(w / 2 - 60, altarY - 18, 120, 6);
+        ctx.fillStyle = '#fff2a0';
+        ctx.fillRect(w / 2 - 48, altarY - 24, 96, 4);
+
+        ctx.fillStyle = 'rgba(0, 240, 255, 0.14)';
+        ctx.fillRect(w / 2 - 150, panelY + 92, 26, 26);
+        ctx.fillRect(w / 2 + 124, panelY + 116, 20, 20);
+        ctx.fillStyle = 'rgba(255, 79, 184, 0.16)';
+        ctx.fillRect(w / 2 + 108, panelY + 72, 16, 16);
+        ctx.fillRect(w / 2 - 138, panelY + 136, 16, 16);
+    }
+
+    function _drawGuideCard(ctx, x, y, w, lines, accent) {
+        var h = 18 + lines.length * 18;
+        Draw.drawPanel(ctx, x, y, w, h, 'rgba(35,18,68,0.92)', accent || Draw.THEME.cyan, Draw.THEME.pink, Draw.THEME.ink);
+        ctx.save();
+        ctx.font = '13px "PoxiaoPixel"';
+        ctx.textAlign = 'center';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 3;
+        for (var i = 0; i < lines.length; i++) {
+            ctx.strokeStyle = '#24113f';
+            ctx.strokeText(lines[i], x + w / 2, y + 18 + i * 18);
+            ctx.fillStyle = '#fff2c1';
+            ctx.fillText(lines[i], x + w / 2, y + 18 + i * 18);
+        }
+        ctx.restore();
+    }
+
+    function _wrapPosterText(ctx, text, maxWidth) {
+        var chars = String(text || '').split('');
+        var lines = [];
+        var current = '';
+        for (var i = 0; i < chars.length; i++) {
+            var next = current + chars[i];
+            if (current && ctx.measureText(next).width > maxWidth) {
+                lines.push(current);
+                current = chars[i];
+            } else {
+                current = next;
+            }
+        }
+        if (current) lines.push(current);
+        return lines;
+    }
+
+    function _drawNeonText(ctx, text, x, y, size, fill, glow) {
+        ctx.save();
+        ctx.font = size + 'px "PoxiaoPixel"';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineJoin = 'round';
+        ctx.shadowColor = glow || fill || '#00f0ff';
+        ctx.shadowBlur = Math.max(8, Math.round(size * 0.45));
+        ctx.lineWidth = Math.max(3, Math.round(size * 0.18));
+        ctx.strokeStyle = '#170b2d';
+        ctx.strokeText(text, x, y);
+        ctx.fillStyle = fill || '#fff2c1';
+        ctx.fillText(text, x, y);
+        ctx.restore();
+    }
+
+    function _drawResultPosterText(ctx, w, h) {
+        var meta = _resultMeta || _evaluatePoseResult();
+        var tag = meta.tag;
+        var quote = meta.quote;
+        var cardW = Math.min(w * 0.72, 320);
+        var cardX = w / 2 - cardW / 2;
+        var cardY = h * 0.12;
+
+        Draw.drawPanel(ctx, cardX, cardY, cardW, 118, 'rgba(35,18,68,0.92)', Draw.THEME.gold, Draw.THEME.pink, Draw.THEME.ink);
+        _drawNeonText(ctx, tag, w / 2, cardY + 28, 18, '#ffea7a', '#ff58b3');
+
+        ctx.save();
+        ctx.font = '14px "PoxiaoPixel"';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 3;
+        var lines = _wrapPosterText(ctx, quote, cardW - 28);
+        for (var i = 0; i < lines.length; i++) {
+            ctx.strokeStyle = '#170b2d';
+            ctx.strokeText(lines[i], w / 2, cardY + 58 + i * 20);
+            ctx.fillStyle = '#7cf7ff';
+            ctx.fillText(lines[i], w / 2, cardY + 58 + i * 20);
+        }
         ctx.restore();
     }
 
@@ -414,49 +936,84 @@ var StickmanScene = (function () {
         ctx.restore();
     }
 
+    function _drawSleeveTrail(ctx, shoulder, hand, color) {
+        if (!shoulder || !hand) return;
+        var dx = hand.ex - shoulder.px;
+        var dy = hand.ey - shoulder.py;
+        var len = Math.sqrt(dx * dx + dy * dy) || 1;
+        var nx = -dy / len;
+        var ny = dx / len;
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(shoulder.px + nx * 9, shoulder.py + ny * 9);
+        ctx.quadraticCurveTo(
+            shoulder.px + dx * 0.45 + nx * 16,
+            shoulder.py + dy * 0.45 + ny * 16,
+            hand.ex + nx * 8,
+            hand.ey + ny * 6
+        );
+        ctx.lineTo(hand.ex - nx * 8, hand.ey - ny * 6);
+        ctx.quadraticCurveTo(
+            shoulder.px + dx * 0.38 - nx * 12,
+            shoulder.py + dy * 0.38 - ny * 12,
+            shoulder.px - nx * 8,
+            shoulder.py - ny * 8
+        );
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = '#ffd75e';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+    }
+
     function _drawStickman(ctx) {
         var palette = {
-            robe: '#c53a4a',
-            robeDeep: '#8e2434',
-            sleeve: '#b73141',
-            skin: '#f6d7b0',
-            jade: '#4f6b66',
-            jadeDeep: '#324b56'
+            robe: '#7a1f3f',
+            robeDeep: '#150a26',
+            sleeve: '#a42f58',
+            skin: '#f4ddb1',
+            leg: '#34165a',
+            legDeep: '#241040'
         };
 
         var limbStyles = {
-            lShin: { fill: palette.jade, outer: 14, inner: 10 },
-            lThigh: { fill: palette.jade, outer: 16, inner: 12 },
-            rThigh: { fill: palette.jadeDeep, outer: 16, inner: 12 },
-            rShin: { fill: palette.jadeDeep, outer: 14, inner: 10 },
-            torso: { fill: palette.robe, outer: 22, inner: 18, bandColor: '#ffd75e', bandRatio: 0.46 },
-            lUArm: { fill: palette.sleeve, outer: 14, inner: 10 },
-            rUArm: { fill: palette.sleeve, outer: 14, inner: 10 },
-            lFArm: { fill: palette.skin, outer: 12, inner: 8 },
-            rFArm: { fill: palette.skin, outer: 12, inner: 8 }
+            lShin: { fill: palette.leg, width: 20, trim: '#7cf7ff', cutoutCount: 1, neonA: '#00f0ff', neonB: '#b991ff' },
+            lThigh: { fill: palette.leg, width: 24, trim: '#7cf7ff', cutoutCount: 1, neonA: '#00f0ff', neonB: '#b991ff' },
+            rThigh: { fill: palette.legDeep, width: 24, trim: '#9f6fff', cutoutCount: 1, neonA: '#00f0ff', neonB: '#ff4fb8' },
+            rShin: { fill: palette.legDeep, width: 20, trim: '#9f6fff', cutoutCount: 1, neonA: '#00f0ff', neonB: '#ff4fb8' },
+            torso: { fill: palette.robe, width: 34, tailWidth: 32, trim: '#ffd75e', cutoutCount: 2, highlight: '#b54b70', shadow: '#2a0d20', neonA: '#00f0ff', neonB: '#ff4fb8', stripeCount: 3 },
+            lUArm: { fill: palette.sleeve, width: 24, trim: '#ffd75e', cutoutCount: 1, startFlare: 1.24, endFlare: 1.08, neonA: '#00f0ff', neonB: '#ff4fb8', stripeCount: 2 },
+            rUArm: { fill: palette.sleeve, width: 24, trim: '#ffd75e', cutoutCount: 1, startFlare: 1.24, endFlare: 1.08, neonA: '#00f0ff', neonB: '#ff4fb8', stripeCount: 2 },
+            lFArm: { fill: palette.sleeve, width: 22, trim: '#ff9bc0', cutoutCount: 1, startFlare: 1.18, endFlare: 1.16, neonA: '#00f0ff', neonB: '#ff4fb8', stripeCount: 2 },
+            rFArm: { fill: palette.sleeve, width: 22, trim: '#ff9bc0', cutoutCount: 1, startFlare: 1.18, endFlare: 1.16, neonA: '#00f0ff', neonB: '#ff4fb8', stripeCount: 2 }
         };
+
+        _drawSleeveTrail(ctx, _segMap['lUArm'], _segMap['lFArm'], 'rgba(143, 44, 78, 0.58)');
+        _drawSleeveTrail(ctx, _segMap['rUArm'], _segMap['rFArm'], 'rgba(143, 44, 78, 0.58)');
 
         var drawOrder = ['rThigh','rShin','lShin','lThigh','torso','lUArm','lFArm','rUArm','rFArm'];
         for (var di = 0; di < drawOrder.length; di++) {
             var s = _segMap[drawOrder[di]];
             if (!s) continue;
             if (s === _selectedSeg) _drawSelectionGlow(ctx, s);
-            _drawPixelLimb(ctx, s, limbStyles[s.id]);
-            _drawPixelJoint(ctx, s.px, s.py, s.id === 'torso' ? 10 : 8, '#ddd6f7');
+            _drawPuppetLimb(ctx, s, limbStyles[s.id]);
+            _drawPuppetJoint(ctx, s.px, s.py, s.id === 'torso' ? 9 : 7);
         }
 
         _drawTorsoDetails(ctx, _segMap['torso']);
 
         if (_segMap['head'] === _selectedSeg) _drawSelectionGlow(ctx, _segMap['head']);
-        _drawPixelHead(ctx, _segMap['head'], _segMap['torso']);
+        _drawPuppetHead(ctx, _segMap['head'], _segMap['torso']);
 
         var lShin = _segMap['lShin'], rShin = _segMap['rShin'];
-        if (lShin) _drawPixelFoot(ctx, lShin.px, lShin.py, true);
-        if (rShin) _drawPixelFoot(ctx, rShin.ex, rShin.ey, false);
+        if (lShin) _drawPuppetFoot(ctx, lShin.px, lShin.py, true);
+        if (rShin) _drawPuppetFoot(ctx, rShin.ex, rShin.ey, false);
 
         var lf = _segMap['lFArm'], rf = _segMap['rFArm'];
-        if (lf) _drawPixelHand(ctx, lf.ex, lf.ey, true);
-        if (rf) _drawPixelHand(ctx, rf.ex, rf.ey, false);
+        if (lf) _drawPuppetHand(ctx, lf.ex, lf.ey, true);
+        if (rf) _drawPuppetHand(ctx, rf.ex, rf.ey, false);
     }
 
     /* ====== 渲染循环 ====== */
@@ -467,15 +1024,25 @@ var StickmanScene = (function () {
         _time += 0.016;
 
         if (_phase === 'playing') {
-            _timer -= dt;
-            if (_timer <= 0) {
-                _timer = 0;
-                _phase = 'result';
-                _selectedSeg = null;
-                _setupUI();
-                Audio.playBlockDrop();
-                Device.mediumVibrate();
-                Engine.addGoldBurst(w / 2, h * 0.4);
+            if (_dropProgress < 1) {
+                _dropProgress = Math.min(1, _dropProgress + dt / _dropDuration);
+                if (_dropProgress >= 1) {
+                    var ground = _getGroundAnchor();
+                    _setRootAnchor(ground.x, ground.y);
+                    _applyPose(_dropToPose || _buildLoosePose());
+                }
+            } else {
+                _timer -= dt;
+                if (_timer <= 0) {
+                    _timer = 0;
+                    _resultMeta = _evaluatePoseResult();
+                    _phase = 'result';
+                    _selectedSeg = null;
+                    _setupUI();
+                    Audio.playBlockDrop();
+                    Device.mediumVibrate();
+                    Engine.addGoldBurst(w / 2, h * 0.4);
+                }
             }
         }
 
@@ -483,20 +1050,54 @@ var StickmanScene = (function () {
         Draw.drawBackground(ctx, w, h);
         Draw.drawFrame(ctx, w, h);
         Draw.drawPanel(ctx, w * 0.08, h * 0.08, w * 0.84, h * 0.76, Draw.THEME.panelDark, Draw.THEME.cyan, Draw.THEME.pink, Draw.THEME.ink);
+        _drawCyberTempleBackdrop(ctx, w, h);
 
-        // 装饰灯笼
-        ctx.fillStyle = 'rgba(255,88,179,0.18)';
+        // 顶部能量灯
+        ctx.fillStyle = 'rgba(255,88,179,0.2)';
         ctx.beginPath(); ctx.arc(w*0.1, h*0.08, 35, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(w*0.9, h*0.08, 35, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(w * 0.1 - 4, h * 0.08 - 28, 8, 12);
+        ctx.fillRect(w * 0.9 - 4, h * 0.08 - 28, 8, 12);
 
         // 地面
-        ctx.fillStyle = Draw.THEME.pink;
+        ctx.fillStyle = '#ff007f';
         ctx.fillRect(0, FLOOR_Y, w, h - FLOOR_Y);
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(0, FLOOR_Y, w, 6);
+        ctx.fillStyle = '#6b124f';
+        for (var gx = 0; gx < w; gx += 28) {
+            ctx.fillRect(gx, FLOOR_Y + 18, 12, 3);
+        }
         ctx.strokeStyle = Draw.THEME.ink;
         ctx.lineWidth = 4;
         ctx.beginPath(); ctx.moveTo(0, FLOOR_Y); ctx.lineTo(w, FLOOR_Y); ctx.stroke();
 
-        _computeFK();
+        if (_phase === 'prepare') {
+            var floatAnchor = _getFloatAnchor();
+            _setRootAnchor(floatAnchor.x, floatAnchor.y + Math.sin(_time * 2.8) * 8);
+            _applyPose(_buildBowPose());
+            _drawCharacterShadow(ctx, w / 2, FLOOR_Y + 2, 1.2, 0.16);
+            Draw.drawHalo(ctx, w / 2, h * 0.42, 120, Draw.THEME.gold, 0.12 + Math.sin(_time * 2.4) * 0.04);
+        } else if (_phase === 'playing' && _dropProgress < 1) {
+            var eased = _easeOutCubic(_dropProgress);
+            var fromAnchor = _getFloatAnchor();
+            var toAnchor = _getGroundAnchor();
+            _setRootAnchor(
+                fromAnchor.x + (toAnchor.x - fromAnchor.x) * eased,
+                fromAnchor.y + (toAnchor.y - fromAnchor.y) * eased
+            );
+            _applyPoseBlend(_dropFromPose || _buildBowPose(), _dropToPose || _buildLoosePose(), eased);
+            _drawCharacterShadow(ctx, w / 2, FLOOR_Y + 2, 0.9 + eased * 0.25, 0.12 + eased * 0.12);
+        } else {
+            if (_phase === 'playing' || _phase === 'result') {
+                var groundAnchor = _getGroundAnchor();
+                _setRootAnchor(groundAnchor.x, groundAnchor.y);
+            }
+            _computeFK();
+            _drawCharacterShadow(ctx, w / 2, FLOOR_Y + 2, 1.18, 0.24);
+        }
+
         _drawStickman(ctx);
 
         // --- 阶段 UI ---
@@ -504,45 +1105,32 @@ var StickmanScene = (function () {
             var titleW = 200, titleH = 48;
             UI.drawRoundedRect(ctx, w / 2 - titleW / 2, h * 0.06, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
             UI.drawTitle(ctx, '拜年姿势王', w/2, h*0.06 + titleH/2 + 2, 28, Draw.THEME.gold);
-            
-            ctx.save();
-            ctx.font = '15px "PoxiaoPixel"';
-            ctx.fillStyle = '#fff2c1';
-            ctx.textAlign = 'center';
-            ctx.lineJoin = 'round';
-            ctx.lineWidth = 3;
-            ctx.strokeStyle = '#24113f';
-            ctx.strokeText('点击并拖动肢节，摆出拜年姿势！', w/2, h*0.2);
-            ctx.fillText('点击并拖动肢节，摆出拜年姿势！', w/2, h*0.2);
-            ctx.strokeText('限时 8 秒', w/2, h*0.25);
-            ctx.fillText('限时 8 秒', w/2, h*0.25);
-            ctx.restore();
+            _drawGuideCard(ctx, w * 0.14, h * 0.14, w * 0.72, [
+                '空中示范：标准弯腰作揖',
+                '双手合拢，低头，含胸前倾',
+                '开始后他会落地散开，8 秒内拖回拜年姿势'
+            ], Draw.THEME.cyan);
         } else if (_phase === 'playing') {
             // 倒计时
             var timerColor = _timer <= 3 ? Draw.THEME.red : Draw.THEME.gold;
             var titleW = 120, titleH = 60;
             UI.drawRoundedRect(ctx, w / 2 - titleW / 2, h * 0.06, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
-            UI.drawTitle(ctx, Math.ceil(_timer) + 's', w/2, h*0.06 + titleH/2 + 2, 36, timerColor);
-            // 提示
-            var hint = _selectedSeg ? ('正在旋转: ' + _selectedSeg.lbl) : '点击身体部位并拖动旋转';
-            UI.drawSubtitle(ctx, hint, w/2, h*0.16, 14, Draw.THEME.cyan);
+            UI.drawTitle(ctx, (_dropProgress < 1 ? '...' : Math.ceil(_timer) + 's'), w/2, h*0.06 + titleH/2 + 2, 36, timerColor);
+            if (_dropProgress < 1) {
+                _drawGuideCard(ctx, w * 0.18, h * 0.15, w * 0.64, [
+                    '人物落地中...',
+                    '等姿势散开后，立刻开摆'
+                ], Draw.THEME.gold);
+            } else {
+                var hint = _selectedSeg ? ('正在调整：' + _selectedSeg.lbl) : '先扶正躯干，再把双手摆回胸前作揖';
+                _drawGuideCard(ctx, w * 0.16, h * 0.14, w * 0.68, [
+                    hint,
+                    '拖动手臂、腿和头部，拼回标准拜年姿势'
+                ], Draw.THEME.cyan);
+            }
         } else if (_phase === 'result') {
             Draw.drawHalo(ctx, w/2, h*0.35, 140, Draw.THEME.gold, 0.18);
-            ctx.save();
-            ctx.translate(w/2, h*0.15);
-            ctx.rotate(-0.08);
-            var titleW = 260, titleH = 60;
-            UI.drawRoundedRect(ctx, -titleW / 2, -titleH / 2, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
-            UI.drawTitle(ctx, '新年快乐', 0, 2, 28, Draw.THEME.gold);
-            ctx.fillStyle = '#fff2c1';
-            ctx.font = '15px "PoxiaoPixel"';
-            ctx.textAlign = 'center';
-            ctx.lineJoin = 'round';
-            ctx.lineWidth = 3;
-            ctx.strokeStyle = '#24113f';
-            ctx.strokeText('大吉大利 · 岁岁平安', 0, 46);
-            ctx.fillText('大吉大利 · 岁岁平安', 0, 46);
-            ctx.restore();
+            _drawResultPosterText(ctx, w, h);
         }
 
         UI.drawButtons(ctx);
@@ -556,7 +1144,8 @@ var StickmanScene = (function () {
         try {
             var url = Engine.getCanvas().toDataURL('image/png');
             var a = document.createElement('a');
-            a.href = url; a.download = '新年拜年.png';
+            var fileName = ((_resultMeta && _resultMeta.key) || 'new-year') + '-poster.png';
+            a.href = url; a.download = fileName;
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
         } catch (e) { alert('保存失败，请截图保存吧~'); }
         _setupUI();
