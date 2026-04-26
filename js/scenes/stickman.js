@@ -445,137 +445,140 @@ var StickmanScene = (function () {
         var dy = s.ey - s.py;
         var len = Math.sqrt(dx * dx + dy * dy) || 1;
         var ang = Math.atan2(dy, dx);
-        var width = opts.width || (s.thick + 12);
-        var tailWidth = opts.tailWidth || width * 0.82;
-        var border = opts.border || '#150a26';
-        var fill = opts.fill || '#6d1f35';
+        var width = opts.width || (s.thick + 14);
+        var tailWidth = opts.tailWidth || width * 0.88;
+        var border = opts.border || '#12091f';
+        var fill = opts.fill || '#73213f';
         var trim = opts.trim || '#ffd75e';
-        var highlight = opts.highlight || _mixColor(fill, '#ffffff', 0.18);
-        var shadow = opts.shadow || _mixColor(fill, '#12091f', 0.48);
+        var inner = opts.inner || _mixColor(fill, '#ffffff', 0.12);
+        var shadow = opts.shadow || _mixColor(fill, '#12091f', 0.38);
         var neonA = opts.neonA || '#00f0ff';
         var neonB = opts.neonB || '#ff4fb8';
-        var innerInset = Math.max(4, Math.round(width * 0.16));
-        var startFlare = opts.startFlare || 1.12;
-        var endFlare = opts.endFlare || 0.9;
-        var notch = Math.max(4, width * 0.16);
-        var circuitry = opts.circuitry !== false;
-        var stripeCount = opts.stripeCount || 2;
+        var startFlare = opts.startFlare || 1.16;
+        var endFlare = opts.endFlare || 0.98;
+        var pieceStyle = opts.pieceStyle || 'sleeve';
+        var cuff = Math.max(8, width * 0.28);
+        var tab = Math.max(4, width * 0.2);
 
         ctx.save();
         ctx.translate(s.px, s.py);
         ctx.rotate(ang);
 
         ctx.beginPath();
-        ctx.moveTo(-notch, -width * startFlare * 0.46);
-        ctx.lineTo(len * 0.18, -width * 0.56);
-        ctx.lineTo(len + notch, -tailWidth * endFlare * 0.46);
-        ctx.lineTo(len + notch, tailWidth * endFlare * 0.46);
-        ctx.lineTo(len * 0.18, width * 0.56);
-        ctx.lineTo(-notch, width * startFlare * 0.46);
+        ctx.moveTo(-tab, -width * startFlare * 0.48);
+        ctx.lineTo(len * 0.16, -width * 0.54);
+        ctx.lineTo(len + tab, -tailWidth * endFlare * 0.46);
+        ctx.lineTo(len + tab, tailWidth * endFlare * 0.46);
+        ctx.lineTo(len * 0.16, width * 0.54);
+        ctx.lineTo(-tab, width * startFlare * 0.48);
         ctx.closePath();
         ctx.fillStyle = border;
         ctx.fill();
 
         ctx.beginPath();
-        ctx.moveTo(0, -width * 0.38);
-        ctx.lineTo(len * 0.2, -width * 0.42);
+        ctx.moveTo(0, -width * 0.4);
+        ctx.lineTo(len * 0.16, -width * 0.46);
         ctx.lineTo(len, -tailWidth * 0.34);
         ctx.lineTo(len, tailWidth * 0.34);
-        ctx.lineTo(len * 0.2, width * 0.42);
-        ctx.lineTo(0, width * 0.38);
+        ctx.lineTo(len * 0.16, width * 0.46);
+        ctx.lineTo(0, width * 0.4);
         ctx.closePath();
         ctx.fillStyle = fill;
         ctx.fill();
 
-        ctx.fillStyle = highlight;
-        ctx.fillRect(innerInset, -width * 0.26, Math.max(8, len - innerInset * 2), 2);
+        ctx.fillStyle = inner;
+        ctx.fillRect(6, -width * 0.24, Math.max(10, len - 12), Math.max(3, width * 0.14));
         ctx.fillStyle = shadow;
-        ctx.fillRect(innerInset, width * 0.18, Math.max(8, len - innerInset * 2), 2);
+        ctx.fillRect(8, width * 0.12, Math.max(10, len - 16), Math.max(3, width * 0.12));
 
-        ctx.strokeStyle = trim;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(4, -width * 0.26);
-        ctx.lineTo(len - 4, -tailWidth * 0.2);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(4, width * 0.26);
-        ctx.lineTo(len - 4, tailWidth * 0.2);
-        ctx.stroke();
+        ctx.fillStyle = trim;
+        ctx.fillRect(6, -width * 0.3, Math.max(12, len * 0.18), 4);
+        ctx.fillRect(len - Math.max(12, len * 0.18) - 6, width * 0.22, Math.max(12, len * 0.18), 4);
 
-        for (var si = 0; si < stripeCount; si++) {
-            var ratio = (si + 1) / (stripeCount + 1);
-            var sx = len * (0.16 + ratio * 0.58);
+        if (pieceStyle === 'robe') {
+            ctx.fillStyle = '#b72b50';
+            ctx.fillRect(len * 0.18, -width * 0.18, Math.max(12, len * 0.48), Math.max(6, width * 0.36));
             ctx.fillStyle = trim;
-            ctx.fillRect(sx, -width * 0.18, 3, width * 0.36);
-        }
-
-        if (circuitry) {
+            ctx.fillRect(len * 0.24, -2, Math.max(12, len * 0.36), 4);
             ctx.strokeStyle = neonA;
-            ctx.lineWidth = 1.5;
+            ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(len * 0.18, 0);
-            ctx.lineTo(len * 0.44, 0);
-            ctx.lineTo(len * 0.58, -width * 0.12);
-            ctx.lineTo(len * 0.72, -width * 0.12);
+            ctx.moveTo(len * 0.24, -width * 0.12);
+            ctx.lineTo(len * 0.42, -width * 0.12);
+            ctx.lineTo(len * 0.52, width * 0.06);
+            ctx.lineTo(len * 0.72, width * 0.06);
             ctx.stroke();
-
             ctx.strokeStyle = neonB;
             ctx.beginPath();
-            ctx.moveTo(len * 0.22, width * 0.08);
-            ctx.lineTo(len * 0.4, width * 0.08);
-            ctx.lineTo(len * 0.52, width * 0.2);
-            ctx.lineTo(len * 0.72, width * 0.2);
+            ctx.moveTo(len * 0.26, width * 0.16);
+            ctx.lineTo(len * 0.38, width * 0.16);
+            ctx.lineTo(len * 0.46, -width * 0.02);
+            ctx.lineTo(len * 0.66, -width * 0.02);
             ctx.stroke();
-
-            ctx.fillStyle = neonA;
-            ctx.fillRect(len * 0.43, -1.5, 4, 4);
+        } else if (pieceStyle === 'sleeve') {
+            ctx.fillStyle = '#8f224d';
+            ctx.fillRect(len * 0.14, -width * 0.22, Math.max(10, len * 0.58), Math.max(6, width * 0.44));
+            ctx.strokeStyle = trim;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(len * 0.24, 0);
+            ctx.lineTo(len * 0.32, -width * 0.18);
+            ctx.lineTo(len * 0.4, 0);
+            ctx.lineTo(len * 0.48, -width * 0.18);
+            ctx.lineTo(len * 0.56, 0);
+            ctx.stroke();
+            ctx.strokeStyle = neonA;
+            ctx.beginPath();
+            ctx.moveTo(len * 0.2, width * 0.14);
+            ctx.lineTo(len * 0.36, width * 0.14);
+            ctx.lineTo(len * 0.46, width * 0.26);
+            ctx.lineTo(len * 0.62, width * 0.26);
+            ctx.stroke();
+        } else {
+            ctx.fillStyle = '#241040';
+            ctx.fillRect(len * 0.18, -width * 0.18, Math.max(10, len * 0.5), Math.max(6, width * 0.36));
             ctx.fillStyle = neonB;
-            ctx.fillRect(len * 0.5, width * 0.18 - 1, 4, 4);
+            ctx.fillRect(len * 0.26, -1, Math.max(10, len * 0.34), 3);
+            ctx.fillStyle = neonA;
+            ctx.fillRect(len * 0.26, width * 0.12, Math.max(10, len * 0.26), 3);
         }
 
-        if (opts.cutoutCount) {
-            ctx.fillStyle = opts.cutout || '#ffefb3';
-            for (var i = 0; i < opts.cutoutCount; i++) {
-                var t = (i + 1) / (opts.cutoutCount + 1);
-                var cx = len * (0.2 + t * 0.56);
-                ctx.beginPath();
-                ctx.arc(cx, 0, Math.max(2, width * 0.08), 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
+        ctx.fillStyle = trim;
+        ctx.fillRect(len - cuff, -tailWidth * 0.2, cuff - 2, Math.max(6, tailWidth * 0.4));
+        ctx.fillStyle = border;
+        ctx.fillRect(len - cuff, -tailWidth * 0.2, 2, Math.max(6, tailWidth * 0.4));
 
         ctx.restore();
     }
 
     function _drawPuppetJoint(ctx, x, y, size) {
-        var r = Math.max(6, size || 8);
+        var r = Math.max(7, size || 8);
         ctx.save();
-        ctx.shadowColor = '#00f0ff';
+        ctx.shadowColor = 'rgba(0,240,255,0.55)';
         ctx.shadowBlur = 10;
         ctx.beginPath();
         ctx.arc(x, y, r + 4, 0, Math.PI * 2);
-        ctx.fillStyle = '#150a26';
+        ctx.fillStyle = '#12091f';
         ctx.fill();
         ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fillStyle = '#1d1538';
-        ctx.fill();
-        for (var i = 0; i < 6; i++) {
-            var a = (Math.PI * 2 / 6) * i;
-            var gx = x + Math.cos(a) * (r + 1);
-            var gy = y + Math.sin(a) * (r + 1);
-            ctx.fillStyle = i % 2 ? '#ff4fb8' : '#00f0ff';
-            ctx.fillRect(Math.round(gx - 1.5), Math.round(gy - 1.5), 3, 3);
-        }
-        ctx.beginPath();
-        ctx.arc(x, y, r * 0.54, 0, Math.PI * 2);
-        ctx.fillStyle = '#ffd75e';
+        ctx.arc(x, y, r + 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#6f4a12';
         ctx.fill();
         ctx.beginPath();
-        ctx.arc(x, y, r * 0.24, 0, Math.PI * 2);
-        ctx.fillStyle = '#fff6b1';
+        ctx.arc(x, y, r - 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#d8a93f';
         ctx.fill();
+        ctx.fillStyle = '#12091f';
+        ctx.fillRect(Math.round(x - r * 0.28), Math.round(y - r * 0.28), Math.round(r * 0.56), Math.round(r * 0.56));
+        ctx.fillStyle = '#fff4af';
+        ctx.fillRect(Math.round(x - r * 0.12), Math.round(y - r * 0.12), Math.round(r * 0.24), Math.round(r * 0.24));
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(Math.round(x - 1), Math.round(y - r - 3), 2, 3);
+        ctx.fillStyle = '#ff4fb8';
+        ctx.fillRect(Math.round(x - 1), Math.round(y + r), 2, 3);
+        ctx.fillRect(Math.round(x - r - 3), Math.round(y - 1), 3, 2);
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(Math.round(x + r), Math.round(y - 1), 3, 2);
         ctx.restore();
     }
 
@@ -624,75 +627,73 @@ var StickmanScene = (function () {
         var faceDirY = Math.sin(faceAngle - Math.PI / 2);
         var sideX = -faceDirY;
         var sideY = faceDirX;
+        var shiftX = Math.round(faceDirX * 2);
+        var shiftY = Math.round(faceDirY * 2);
 
         ctx.save();
         ctx.translate(hcx, hcy);
-        ctx.shadowColor = '#00f0ff';
-        ctx.shadowBlur = 8;
 
         ctx.beginPath();
-        ctx.ellipse(0, 0, 21, 24, 0, 0, Math.PI * 2);
-        ctx.fillStyle = '#150a26';
+        ctx.ellipse(0, 0, 23, 25, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#12091f';
         ctx.fill();
         ctx.beginPath();
-        ctx.ellipse(0, 1, 16, 19, 0, 0, Math.PI * 2);
-        ctx.fillStyle = '#f3d7ae';
+        ctx.ellipse(0, 1, 17, 20, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#f1d8af';
         ctx.fill();
 
+        ctx.fillStyle = '#7d1833';
+        ctx.fillRect(-18, -18, 36, 8);
         ctx.beginPath();
         ctx.moveTo(-22, -10);
-        ctx.lineTo(0, -28);
+        ctx.lineTo(0, -30);
         ctx.lineTo(22, -10);
-        ctx.lineTo(19, -1);
-        ctx.lineTo(-19, -1);
+        ctx.lineTo(18, -2);
+        ctx.lineTo(-18, -2);
         ctx.closePath();
-        ctx.fillStyle = '#7a1730';
         ctx.fill();
-        ctx.fillStyle = '#00f0ff';
-        ctx.fillRect(-14, -12, 4, 3);
-        ctx.fillRect(10, -12, 4, 3);
-
         ctx.fillStyle = '#ffd75e';
-        ctx.fillRect(-8, -18, 16, 4);
-        ctx.beginPath();
-        ctx.arc(-16, -6, 4, 0, Math.PI * 2);
-        ctx.arc(16, -6, 4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#ff4fb8';
-        ctx.fillRect(-3, -26, 6, 7);
-
-        var eyeOffsetX = Math.round(sideX * 4);
-        var eyeOffsetY = Math.round(sideY * 4);
-        var faceShiftX = Math.round(faceDirX * 2);
-        var faceShiftY = Math.round(faceDirY * 2);
-
-        ctx.fillStyle = '#150a26';
-        ctx.beginPath();
-        ctx.arc(-4 + eyeOffsetX + faceShiftX, -3 + eyeOffsetY + faceShiftY, 2.1, 0, Math.PI * 2);
-        ctx.arc(4 + eyeOffsetX + faceShiftX, -3 + eyeOffsetY + faceShiftY, 2.1, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillRect(-12, -21, 24, 4);
         ctx.fillStyle = '#00f0ff';
-        ctx.fillRect(-7 + eyeOffsetX + faceShiftX, -7 + eyeOffsetY + faceShiftY, 6, 1.5);
-        ctx.fillRect(1 + eyeOffsetX + faceShiftX, -7 + eyeOffsetY + faceShiftY, 6, 1.5);
+        ctx.fillRect(-15, -14, 4, 3);
+        ctx.fillRect(11, -14, 4, 3);
+        ctx.fillStyle = '#ff4fb8';
+        ctx.fillRect(-3, -28, 6, 7);
+
+        ctx.fillStyle = '#7d1833';
+        ctx.fillRect(-24, -2, 6, 12);
+        ctx.fillRect(18, -2, 6, 12);
+        ctx.fillStyle = '#ffd75e';
+        ctx.fillRect(-23, 6, 5, 3);
+        ctx.fillRect(18, 6, 5, 3);
+
+        ctx.fillStyle = '#12091f';
+        ctx.fillRect(-7 + Math.round(sideX * 2) + shiftX, -4 + Math.round(sideY * 2) + shiftY, 4, 4);
+        ctx.fillRect(3 + Math.round(sideX * 2) + shiftX, -4 + Math.round(sideY * 2) + shiftY, 4, 4);
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(-8 + shiftX, -8 + shiftY, 6, 2);
+        ctx.fillRect(2 + shiftX, -8 + shiftY, 6, 2);
+        ctx.fillStyle = '#d75d69';
+        ctx.fillRect(-2 + shiftX, 0 + shiftY, 3, 4);
+        ctx.strokeStyle = '#12091f';
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(-4 + faceShiftX, 5 + faceShiftY);
-        ctx.quadraticCurveTo(0 + faceShiftX, 8 + faceShiftY, 4 + faceShiftX, 5 + faceShiftY);
-        ctx.strokeStyle = '#150a26';
-        ctx.lineWidth = 1.6;
+        ctx.moveTo(-5 + shiftX, 7 + shiftY);
+        ctx.quadraticCurveTo(0 + shiftX, 10 + shiftY, 5 + shiftX, 7 + shiftY);
         ctx.stroke();
 
         ctx.fillStyle = '#f2ead9';
         ctx.beginPath();
-        ctx.moveTo(-10, 10);
-        ctx.lineTo(10, 10);
-        ctx.lineTo(7, 18);
-        ctx.lineTo(-7, 18);
+        ctx.moveTo(-11, 10);
+        ctx.lineTo(11, 10);
+        ctx.lineTo(8, 18);
+        ctx.lineTo(-8, 18);
         ctx.closePath();
         ctx.fill();
-        ctx.fillStyle = '#d7cbb5';
-        ctx.fillRect(-6, 14, 12, 3);
+        ctx.fillStyle = '#d6c9ae';
+        ctx.fillRect(-7, 14, 14, 3);
         ctx.fillStyle = '#ff4fb8';
-        ctx.fillRect(-3, 9, 6, 2);
+        ctx.fillRect(-4, 9, 8, 2);
 
         ctx.restore();
     }
@@ -778,64 +779,110 @@ var StickmanScene = (function () {
         ctx.restore();
     }
 
-    function _drawCyberTempleBackdrop(ctx, w, h) {
-        var panelX = w * 0.11;
-        var panelY = h * 0.27;
-        var panelW = w * 0.78;
-        var panelH = h * 0.47;
-        var altarY = panelY + panelH * 0.78;
-
-        Draw.drawPanel(ctx, panelX, panelY, panelW, panelH, '#140d30', '#00f0ff', '#ff4fb8', '#0a0615');
-
-        ctx.fillStyle = '#221247';
-        ctx.fillRect(panelX + 12, panelY + 12, panelW - 24, panelH - 24);
-
-        for (var gx = panelX + 22; gx < panelX + panelW - 22; gx += 24) {
-            ctx.fillStyle = 'rgba(0, 240, 255, 0.18)';
-            ctx.fillRect(gx, panelY + 16, 2, panelH - 32);
+    function _drawCurtain(ctx, x, y, w, h, side) {
+        ctx.save();
+        ctx.fillStyle = '#4b0f2f';
+        ctx.fillRect(x, y, w, h);
+        for (var i = 0; i < w; i += 12) {
+            ctx.fillStyle = i % 24 === 0 ? '#8e1d49' : '#6a1538';
+            ctx.fillRect(x + i, y, 8, h);
         }
-        for (var gy = panelY + 22; gy < panelY + panelH - 22; gy += 22) {
-            ctx.fillStyle = 'rgba(255, 79, 184, 0.14)';
-            ctx.fillRect(panelX + 16, gy, panelW - 32, 2);
-        }
-
-        ctx.fillStyle = '#10081d';
-        ctx.fillRect(w / 2 - 94, panelY + 44, 188, 156);
-        ctx.fillStyle = '#2b1550';
-        ctx.fillRect(w / 2 - 82, panelY + 56, 164, 132);
-
-        ctx.fillStyle = '#150a26';
-        ctx.fillRect(w / 2 - 44, panelY + 14, 88, 28);
-        ctx.fillStyle = '#ff4fb8';
-        ctx.fillRect(w / 2 - 38, panelY + 20, 76, 18);
-        ctx.fillStyle = '#00f0ff';
-        ctx.fillRect(w / 2 - 6, panelY + 20, 12, 18);
-
-        _drawTempleBeacon(ctx, panelX + 42, altarY - 30, 1);
-        _drawTempleBeacon(ctx, panelX + panelW - 42, altarY - 30, 1);
-        _drawDataStream(ctx, panelX + 44, panelY + 12, 84, '#00f0ff', '#ff4fb8');
-        _drawDataStream(ctx, panelX + panelW - 48, panelY + 12, 84, '#ff4fb8', '#00f0ff');
-
-        ctx.fillStyle = '#150a26';
-        ctx.fillRect(w / 2 - 110, altarY - 4, 220, 30);
-        ctx.fillStyle = '#392065';
-        ctx.fillRect(w / 2 - 98, altarY + 2, 196, 18);
-        ctx.fillStyle = '#00f0ff';
-        ctx.fillRect(w / 2 - 92, altarY + 2, 184, 4);
-        ctx.fillStyle = '#ff4fb8';
-        ctx.fillRect(w / 2 - 82, altarY + 12, 164, 4);
-
         ctx.fillStyle = '#ffd75e';
-        ctx.fillRect(w / 2 - 60, altarY - 18, 120, 6);
-        ctx.fillStyle = '#fff2a0';
-        ctx.fillRect(w / 2 - 48, altarY - 24, 96, 4);
+        ctx.fillRect(x, y + 14, w, 4);
+        ctx.fillRect(x, y + h - 10, w, 4);
+        ctx.fillStyle = '#ff4fb8';
+        if (side === 'left') {
+            ctx.fillRect(x + w - 8, y, 8, h);
+        } else {
+            ctx.fillRect(x, y, 8, h);
+        }
+        ctx.restore();
+    }
 
-        ctx.fillStyle = 'rgba(0, 240, 255, 0.14)';
-        ctx.fillRect(w / 2 - 150, panelY + 92, 26, 26);
-        ctx.fillRect(w / 2 + 124, panelY + 116, 20, 20);
-        ctx.fillStyle = 'rgba(255, 79, 184, 0.16)';
-        ctx.fillRect(w / 2 + 108, panelY + 72, 16, 16);
-        ctx.fillRect(w / 2 - 138, panelY + 136, 16, 16);
+    function _drawStageSpotlight(ctx, cx, topY, bottomY, width, color) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(cx - 18, topY);
+        ctx.lineTo(cx + 18, topY);
+        ctx.lineTo(cx + width, bottomY);
+        ctx.lineTo(cx - width, bottomY);
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.restore();
+    }
+
+    function _drawCyberTempleBackdrop(ctx, w, h) {
+        var stageX = w * 0.08;
+        var stageY = h * 0.08;
+        var stageW = w * 0.84;
+        var stageH = h * 0.76;
+        var screenX = w * 0.17;
+        var screenY = h * 0.29;
+        var screenW = w * 0.66;
+        var screenH = h * 0.38;
+        var altarY = stageY + stageH * 0.78;
+
+        ctx.fillStyle = '#130a28';
+        ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = '#1c103b';
+        ctx.fillRect(0, 0, w, FLOOR_Y);
+
+        _drawStageSpotlight(ctx, w * 0.28, stageY + 4, screenY + screenH * 0.9, 84, 'rgba(0,240,255,0.15)');
+        _drawStageSpotlight(ctx, w * 0.72, stageY + 4, screenY + screenH * 0.9, 84, 'rgba(255,79,184,0.14)');
+
+        _drawCurtain(ctx, 0, stageY + 18, 46, stageH - 40, 'left');
+        _drawCurtain(ctx, w - 46, stageY + 18, 46, stageH - 40, 'right');
+
+        ctx.fillStyle = '#6a1538';
+        ctx.fillRect(stageX + 26, stageY, stageW - 52, 26);
+        ctx.fillStyle = '#8f224d';
+        for (var vx = stageX + 34; vx < stageX + stageW - 34; vx += 18) {
+            ctx.fillRect(vx, stageY + 4, 10, 18);
+        }
+        ctx.fillStyle = '#ffd75e';
+        ctx.fillRect(stageX + 22, stageY + 20, stageW - 44, 4);
+
+        Draw.drawFrame(ctx, w, h);
+        Draw.drawPanel(ctx, stageX, stageY + 28, stageW, stageH - 28, '#171032', '#00f0ff', '#ff4fb8', '#0a0615');
+        Draw.drawPanel(ctx, screenX, screenY, screenW, screenH, '#160c2c', '#ffd75e', '#ff4fb8', '#0a0615');
+
+        ctx.fillStyle = '#25134a';
+        ctx.fillRect(screenX + 12, screenY + 12, screenW - 24, screenH - 24);
+        ctx.fillStyle = 'rgba(0,240,255,0.1)';
+        for (var gy = screenY + 24; gy < screenY + screenH - 18; gy += 18) {
+            ctx.fillRect(screenX + 18, gy, screenW - 36, 2);
+        }
+
+        ctx.fillStyle = '#12091f';
+        ctx.fillRect(w / 2 - 96, screenY + 26, 192, 30);
+        ctx.fillStyle = '#ff4fb8';
+        ctx.fillRect(w / 2 - 90, screenY + 32, 180, 18);
+        ctx.fillStyle = '#ffd75e';
+        ctx.fillRect(w / 2 - 48, screenY + 22, 96, 4);
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(w / 2 - 8, screenY + 32, 16, 18);
+
+        _drawTempleBeacon(ctx, screenX + 30, altarY - 28, 1);
+        _drawTempleBeacon(ctx, screenX + screenW - 30, altarY - 28, 1);
+        _drawDataStream(ctx, screenX + 28, screenY + 10, 86, '#00f0ff', '#ff4fb8');
+        _drawDataStream(ctx, screenX + screenW - 32, screenY + 10, 86, '#ff4fb8', '#00f0ff');
+
+        ctx.fillStyle = '#12091f';
+        ctx.fillRect(w / 2 - 126, altarY + 2, 252, 36);
+        ctx.fillStyle = '#3d225f';
+        ctx.fillRect(w / 2 - 108, altarY + 10, 216, 18);
+        ctx.fillStyle = '#00f0ff';
+        ctx.fillRect(w / 2 - 102, altarY + 10, 204, 4);
+        ctx.fillStyle = '#ff4fb8';
+        ctx.fillRect(w / 2 - 88, altarY + 22, 176, 4);
+
+        ctx.fillStyle = 'rgba(255,215,94,0.16)';
+        ctx.fillRect(w / 2 - 152, screenY + 102, 22, 22);
+        ctx.fillRect(w / 2 + 130, screenY + 122, 18, 18);
+        ctx.fillStyle = 'rgba(0,240,255,0.15)';
+        ctx.fillRect(w / 2 - 142, screenY + 138, 16, 16);
+        ctx.fillRect(w / 2 + 116, screenY + 84, 20, 20);
     }
 
     function _drawGuideCard(ctx, x, y, w, lines, accent) {
@@ -970,28 +1017,28 @@ var StickmanScene = (function () {
 
     function _drawStickman(ctx) {
         var palette = {
-            robe: '#7a1f3f',
+            robe: '#7b1d38',
             robeDeep: '#150a26',
-            sleeve: '#a42f58',
+            sleeve: '#98254b',
             skin: '#f4ddb1',
-            leg: '#34165a',
-            legDeep: '#241040'
+            leg: '#3b1a5f',
+            legDeep: '#281146'
         };
 
         var limbStyles = {
-            lShin: { fill: palette.leg, width: 20, trim: '#7cf7ff', cutoutCount: 1, neonA: '#00f0ff', neonB: '#b991ff' },
-            lThigh: { fill: palette.leg, width: 24, trim: '#7cf7ff', cutoutCount: 1, neonA: '#00f0ff', neonB: '#b991ff' },
-            rThigh: { fill: palette.legDeep, width: 24, trim: '#9f6fff', cutoutCount: 1, neonA: '#00f0ff', neonB: '#ff4fb8' },
-            rShin: { fill: palette.legDeep, width: 20, trim: '#9f6fff', cutoutCount: 1, neonA: '#00f0ff', neonB: '#ff4fb8' },
-            torso: { fill: palette.robe, width: 34, tailWidth: 32, trim: '#ffd75e', cutoutCount: 2, highlight: '#b54b70', shadow: '#2a0d20', neonA: '#00f0ff', neonB: '#ff4fb8', stripeCount: 3 },
-            lUArm: { fill: palette.sleeve, width: 24, trim: '#ffd75e', cutoutCount: 1, startFlare: 1.24, endFlare: 1.08, neonA: '#00f0ff', neonB: '#ff4fb8', stripeCount: 2 },
-            rUArm: { fill: palette.sleeve, width: 24, trim: '#ffd75e', cutoutCount: 1, startFlare: 1.24, endFlare: 1.08, neonA: '#00f0ff', neonB: '#ff4fb8', stripeCount: 2 },
-            lFArm: { fill: palette.sleeve, width: 22, trim: '#ff9bc0', cutoutCount: 1, startFlare: 1.18, endFlare: 1.16, neonA: '#00f0ff', neonB: '#ff4fb8', stripeCount: 2 },
-            rFArm: { fill: palette.sleeve, width: 22, trim: '#ff9bc0', cutoutCount: 1, startFlare: 1.18, endFlare: 1.16, neonA: '#00f0ff', neonB: '#ff4fb8', stripeCount: 2 }
+            lShin: { fill: palette.leg, width: 20, trim: '#7cf7ff', pieceStyle: 'leg', neonA: '#00f0ff', neonB: '#b991ff' },
+            lThigh: { fill: palette.leg, width: 24, trim: '#7cf7ff', pieceStyle: 'leg', neonA: '#00f0ff', neonB: '#b991ff' },
+            rThigh: { fill: palette.legDeep, width: 24, trim: '#9f6fff', pieceStyle: 'leg', neonA: '#00f0ff', neonB: '#ff4fb8' },
+            rShin: { fill: palette.legDeep, width: 20, trim: '#9f6fff', pieceStyle: 'leg', neonA: '#00f0ff', neonB: '#ff4fb8' },
+            torso: { fill: palette.robe, width: 36, tailWidth: 34, trim: '#ffd75e', pieceStyle: 'robe', startFlare: 1.18, endFlare: 1.02, inner: '#b94768', shadow: '#2a0d20', neonA: '#00f0ff', neonB: '#ff4fb8' },
+            lUArm: { fill: palette.sleeve, width: 26, trim: '#ffd75e', pieceStyle: 'sleeve', startFlare: 1.28, endFlare: 1.12, inner: '#c03f69', neonA: '#00f0ff', neonB: '#ff4fb8' },
+            rUArm: { fill: palette.sleeve, width: 26, trim: '#ffd75e', pieceStyle: 'sleeve', startFlare: 1.28, endFlare: 1.12, inner: '#c03f69', neonA: '#00f0ff', neonB: '#ff4fb8' },
+            lFArm: { fill: palette.sleeve, width: 24, trim: '#ff9bc0', pieceStyle: 'sleeve', startFlare: 1.22, endFlare: 1.18, inner: '#cf4d78', neonA: '#00f0ff', neonB: '#ff4fb8' },
+            rFArm: { fill: palette.sleeve, width: 24, trim: '#ff9bc0', pieceStyle: 'sleeve', startFlare: 1.22, endFlare: 1.18, inner: '#cf4d78', neonA: '#00f0ff', neonB: '#ff4fb8' }
         };
 
-        _drawSleeveTrail(ctx, _segMap['lUArm'], _segMap['lFArm'], 'rgba(143, 44, 78, 0.58)');
-        _drawSleeveTrail(ctx, _segMap['rUArm'], _segMap['rFArm'], 'rgba(143, 44, 78, 0.58)');
+        _drawSleeveTrail(ctx, _segMap['lUArm'], _segMap['lFArm'], 'rgba(122, 29, 56, 0.72)');
+        _drawSleeveTrail(ctx, _segMap['rUArm'], _segMap['rFArm'], 'rgba(122, 29, 56, 0.72)');
 
         var drawOrder = ['rThigh','rShin','lShin','lThigh','torso','lUArm','lFArm','rUArm','rFArm'];
         for (var di = 0; di < drawOrder.length; di++) {
@@ -1047,25 +1094,14 @@ var StickmanScene = (function () {
         }
 
         // 背景
-        Draw.drawBackground(ctx, w, h);
-        Draw.drawFrame(ctx, w, h);
-        Draw.drawPanel(ctx, w * 0.08, h * 0.08, w * 0.84, h * 0.76, Draw.THEME.panelDark, Draw.THEME.cyan, Draw.THEME.pink, Draw.THEME.ink);
         _drawCyberTempleBackdrop(ctx, w, h);
 
-        // 顶部能量灯
-        ctx.fillStyle = 'rgba(255,88,179,0.2)';
-        ctx.beginPath(); ctx.arc(w*0.1, h*0.08, 35, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(w*0.9, h*0.08, 35, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#00f0ff';
-        ctx.fillRect(w * 0.1 - 4, h * 0.08 - 28, 8, 12);
-        ctx.fillRect(w * 0.9 - 4, h * 0.08 - 28, 8, 12);
-
         // 地面
-        ctx.fillStyle = '#ff007f';
+        ctx.fillStyle = '#6f153d';
         ctx.fillRect(0, FLOOR_Y, w, h - FLOOR_Y);
         ctx.fillStyle = '#00f0ff';
         ctx.fillRect(0, FLOOR_Y, w, 6);
-        ctx.fillStyle = '#6b124f';
+        ctx.fillStyle = '#ff4fb8';
         for (var gx = 0; gx < w; gx += 28) {
             ctx.fillRect(gx, FLOOR_Y + 18, 12, 3);
         }
