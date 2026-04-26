@@ -240,19 +240,19 @@ html, body {
     position: relative;
     z-index: 1;
     background:
-        linear-gradient(180deg, #e53935, #c62828),
+        linear-gradient(180deg, #1a0b2e, #090214),
         repeating-linear-gradient(
             0deg,
-            rgba(255, 236, 188, 0.15) 0 2px,
-            rgba(255, 236, 188, 0) 2px 6px
+            rgba(0, 229, 255, 0.05) 0 2px,
+            rgba(0, 229, 255, 0) 2px 6px
         ),
-        #d32f2f;
-    border: 4px solid #ffca28;
+        #130524;
+    border: 4px solid #00e5ff;
     box-shadow:
-        0 0 0 4px #b71c1c inset,
-        0 0 0 8px rgba(255, 202, 40, 0.3) inset,
-        8px 8px 0 rgba(20, 5, 5, 0.6),
-        0 0 20px rgba(255, 82, 82, 0.6);
+        0 0 0 4px #090214 inset,
+        0 0 0 8px rgba(0, 229, 255, 0.2) inset,
+        8px 8px 0 rgba(10, 2, 20, 0.8),
+        0 0 20px rgba(0, 229, 255, 0.4);
     padding: 70px 24px 24px;
 }
 
@@ -262,8 +262,8 @@ html, body {
     position: absolute;
     width: 14px;
     height: 14px;
-    background: #ffca28;
-    box-shadow: 0 0 8px rgba(255, 202, 40, 0.5);
+    background: #00e5ff;
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.6);
 }
 
 .fortune-panel::before {
@@ -283,54 +283,55 @@ html, body {
     z-index: 3;
     min-width: 92px;
     height: 42px;
-    border: 3px solid #80cbc4;
-    background: linear-gradient(180deg, #00695c, #004d40);
-    color: #e0f2f1;
+    border: 3px solid #ff0055;
+    background: linear-gradient(180deg, #990033, #4d001a);
+    color: #ffb3d1;
     font: 15px "PoxiaoPixel", sans-serif;
     box-shadow:
-        0 0 0 3px #00332a inset,
-        4px 4px 0 rgba(10, 5, 5, 0.9),
-        0 0 12px rgba(0, 150, 136, 0.4);
+        0 0 0 3px #330011 inset,
+        4px 4px 0 rgba(10, 2, 20, 0.9),
+        0 0 12px rgba(255, 0, 85, 0.4);
 }
 
 .fortune-title {
     margin: 0 auto 16px;
     width: fit-content;
     padding: 10px 18px 8px;
-    border: 3px solid #ffca28;
+    border: 3px solid #ff0055;
     background:
-        linear-gradient(180deg, #d32f2f, #b71c1c),
-        #c62828;
-    color: #ffeb3b;
+        linear-gradient(180deg, #cc0044, #80002b),
+        #990033;
+    color: #ffffff;
     text-align: center;
     font-size: 26px;
     letter-spacing: 0.08em;
     box-shadow:
-        0 0 0 3px #5c0f0f inset,
-        4px 4px 0 rgba(10, 5, 5, 0.92);
+        0 0 0 3px #4d001a inset,
+        4px 4px 0 rgba(10, 2, 20, 0.92);
     text-shadow:
-        0 0 10px rgba(255, 235, 59, 0.6);
+        0 0 10px rgba(255, 0, 85, 0.8),
+        0 0 4px #fff;
 }
 
 .fortune-rule {
     min-height: 86px;
     padding: 14px 14px 12px;
-    border: 3px solid #80cbc4;
+    border: 3px solid #b142f5;
     background:
-        linear-gradient(180deg, rgba(0, 105, 92, 0.6), rgba(0, 77, 64, 0.4)),
+        linear-gradient(180deg, rgba(60, 15, 100, 0.6), rgba(30, 5, 50, 0.4)),
         repeating-linear-gradient(
             180deg,
-            rgba(224, 242, 241, 0.08) 0 2px,
-            rgba(224, 242, 241, 0) 2px 8px
+            rgba(230, 180, 255, 0.08) 0 2px,
+            rgba(230, 180, 255, 0) 2px 8px
         ),
-        #00332a;
-    color: #e0f2f1;
+        #1d0533;
+    color: #e6b3ff;
     text-align: center;
     line-height: 1.8;
     font-size: 15px;
     box-shadow:
-        0 0 0 3px #00251a inset,
-        0 0 14px rgba(0, 150, 136, 0.25);
+        0 0 0 3px #120224 inset,
+        0 0 14px rgba(177, 66, 245, 0.25);
     text-shadow: none;
 }
 
@@ -340,22 +341,22 @@ html, body {
     align-items: center;
     min-height: 260px;
     margin: 14px 0 18px;
-    border: 4px solid #ffca28;
+    border: 4px solid #00e5ff;
     background:
-        linear-gradient(180deg, #c62828, #b71c1c),
+        linear-gradient(180deg, #1d0533, #090214),
         repeating-linear-gradient(
             90deg,
-            rgba(255, 235, 59, 0.08) 0 1px,
-            rgba(255, 235, 59, 0) 1px 28px
+            rgba(0, 229, 255, 0.08) 0 1px,
+            rgba(0, 229, 255, 0) 1px 28px
         ),
         repeating-linear-gradient(
             180deg,
-            rgba(255, 235, 59, 0.08) 0 1px,
-            rgba(255, 235, 59, 0) 1px 28px
+            rgba(0, 229, 255, 0.08) 0 1px,
+            rgba(0, 229, 255, 0) 1px 28px
         );
     box-shadow:
-        0 0 0 4px #b71c1c inset,
-        0 0 16px rgba(255, 202, 40, 0.3);
+        0 0 0 4px #090214 inset,
+        0 0 16px rgba(0, 229, 255, 0.3);
 }
 
 .fortune-tube-wrap {
@@ -371,23 +372,24 @@ html, body {
 .fortune-tube-glow {
     position: absolute;
     inset: 26px 10px 18px;
-    background: radial-gradient(circle, rgba(255, 202, 40, 0.4) 0%, rgba(255, 202, 40, 0.15) 52%, rgba(255, 202, 40, 0) 76%);
-    filter: blur(6px);
+    background: radial-gradient(circle, rgba(255, 0, 85, 0.6) 0%, rgba(177, 66, 245, 0.3) 52%, rgba(0, 229, 255, 0) 76%);
+    filter: blur(8px);
 }
 
 .fortune-stick {
     position: absolute;
     left: 50%;
-    top: 42px;
-    width: 32px;
+    bottom: 20px;
+    width: 48px;
     height: auto;
-    transform: translateX(-50%) translateY(76px);
+    transform: translateX(-50%);
     z-index: 1;
-    filter: drop-shadow(0 0 6px rgba(255, 202, 40, 0.4));
+    opacity: 0;
+    filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.6));
 }
 
 .fortune-stick.is-rising {
-    animation: fortune-stick-rise 0.72s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    animation: fortune-stick-rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
 .fortune-tube {
@@ -398,7 +400,7 @@ html, body {
     height: auto;
     transform: translateX(-50%);
     z-index: 2;
-    filter: drop-shadow(0 4px 12px rgba(10, 5, 5, 0.4));
+    filter: drop-shadow(0 4px 12px rgba(10, 2, 20, 0.8));
 }
 
 .fortune-actions {
@@ -411,15 +413,15 @@ html, body {
 .fortune-secondary,
 .fortune-modal-cancel,
 .fortune-modal-confirm {
-    border: 3px solid #63a98f;
-    background: linear-gradient(180deg, #2b4f42, #182e25);
-    color: #c9e8da;
+    border: 3px solid #b142f5;
+    background: linear-gradient(180deg, #3a0a66, #1d0533);
+    color: #e6b3ff;
     font: 15px "PoxiaoPixel", sans-serif;
     padding: 14px 16px 12px;
     box-shadow:
-        0 0 0 3px #12211a inset,
-        4px 4px 0 rgba(10, 5, 5, 0.92),
-        0 0 8px rgba(99, 169, 143, 0.15);
+        0 0 0 3px #120224 inset,
+        4px 4px 0 rgba(10, 2, 20, 0.92),
+        0 0 8px rgba(177, 66, 245, 0.3);
     transition: transform 0.08s steps(2, end), box-shadow 0.08s steps(2, end);
 }
 
@@ -429,26 +431,26 @@ html, body {
 .fortune-modal-confirm:active {
     transform: translate(4px, 4px);
     box-shadow:
-        0 0 0 3px #12211a inset,
-        0 0 6px rgba(99, 169, 143, 0.15);
+        0 0 0 3px #120224 inset,
+        0 0 6px rgba(177, 66, 245, 0.3);
 }
 
 .fortune-primary,
 .fortune-modal-confirm {
-    border-color: #ffca28;
-    background: linear-gradient(180deg, #e53935, #c62828);
-    color: #fff8e1;
+    border-color: #ff0055;
+    background: linear-gradient(180deg, #cc0044, #80002b);
+    color: #ffffff;
     box-shadow:
-        0 0 0 3px #8e0000 inset,
-        4px 4px 0 rgba(10, 5, 5, 0.92),
-        0 0 12px rgba(255, 202, 40, 0.3);
+        0 0 0 3px #4d001a inset,
+        4px 4px 0 rgba(10, 2, 20, 0.92),
+        0 0 12px rgba(255, 0, 85, 0.5);
 }
 
 .fortune-primary:active,
 .fortune-modal-confirm:active {
     box-shadow:
-        0 0 0 3px #8e0000 inset,
-        0 0 8px rgba(255, 202, 40, 0.3);
+        0 0 0 3px #4d001a inset,
+        0 0 8px rgba(255, 0, 85, 0.5);
 }
 
 .fortune-primary:disabled,
@@ -477,16 +479,16 @@ html, body {
     z-index: 1;
     width: 100%;
     background:
-        linear-gradient(180deg, #fff59d, #ffe082),
+        linear-gradient(180deg, #1d0533, #090214),
         repeating-linear-gradient(
             0deg,
-            rgba(185, 55, 20, 0.04) 0 2px,
-            rgba(185, 55, 20, 0) 2px 6px
+            rgba(0, 229, 255, 0.05) 0 2px,
+            rgba(0, 229, 255, 0) 2px 6px
         );
-    border: 4px solid #c62828;
+    border: 4px solid #00e5ff;
     box-shadow:
-        0 0 0 4px #ffca28 inset,
-        0 0 16px rgba(185, 55, 20, 0.35);
+        0 0 0 4px #090214 inset,
+        0 0 16px rgba(0, 229, 255, 0.4);
     padding: 24px 20px 20px;
 }
 
@@ -496,8 +498,9 @@ html, body {
     position: absolute;
     width: 12px;
     height: 12px;
-    background: #c62828;
+    background: #00e5ff;
     border-radius: 50%;
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.6);
 }
 
 .fortune-modal-card::before {
@@ -511,21 +514,22 @@ html, body {
 }
 
 .fortune-modal-title {
-    color: #c62828;
+    color: #ff0055;
     text-align: center;
     font-size: 22px;
     margin-bottom: 14px;
-    text-shadow: 0 0 4px rgba(198, 40, 40, 0.2);
+    text-shadow: 0 0 8px rgba(255, 0, 85, 0.6);
     font-weight: bold;
 }
 
 .fortune-modal-body {
-    color: #b71c1c;
+    color: #e6b3ff;
     text-align: center;
     line-height: 1.8;
     font-size: 15px;
     min-height: 104px;
     font-weight: bold;
+    text-shadow: 0 0 4px rgba(230, 179, 255, 0.3);
 }
 
 .fortune-modal-actions {
@@ -550,20 +554,20 @@ html, body {
 
 @keyframes fortune-stick-rise {
     0% {
-        opacity: 0.12;
-        transform: translateX(-50%) translateY(76px);
+        opacity: 0;
+        transform: translateX(-50%) translateY(40px);
     }
-    25% {
-        opacity: 0.7;
-        transform: translateX(-50%) translateY(42px);
+    20% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0px);
     }
     70% {
         opacity: 1;
-        transform: translateX(-50%) translateY(-18px);
+        transform: translateX(-50%) translateY(-110px);
     }
     100% {
         opacity: 1;
-        transform: translateX(-50%) translateY(-30px);
+        transform: translateX(-50%) translateY(-130px);
     }
 }
 
