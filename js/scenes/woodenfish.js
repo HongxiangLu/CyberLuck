@@ -32,7 +32,7 @@ var WoodenFishScene = (function () {
             glow: '#ff8a00',
             accent: '#ffd84c',
             effect: 'flame',
-            imgScale: 1.1
+            imgScale: 0.88 // 1.1 * 0.8
         },
         {
             name: '霓闪木鱼',
@@ -41,7 +41,7 @@ var WoodenFishScene = (function () {
             glow: '#63efff',
             accent: '#8fe6ff',
             effect: 'storm',
-            imgScale: 1.08
+            imgScale: 0.864 // 1.08 * 0.8
         },
         {
             name: '莲相木鱼',
@@ -50,7 +50,7 @@ var WoodenFishScene = (function () {
             glow: '#ff58b3',
             accent: '#ffe08a',
             effect: 'lotus',
-            imgScale: 1.08
+            imgScale: 0.864 // 1.08 * 0.8
         },
         {
             name: '经典木鱼',
