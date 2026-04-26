@@ -238,6 +238,10 @@ html, body {
     flex: auto;
 }
 
+.fortune-overlay[hidden] {
+    display: none !important;
+}
+
 .fortune-shell {
     position: relative;
     width: min(92vw, 430px);
