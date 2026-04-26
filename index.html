@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <!-- 这是一段测试 -->
     <meta charset="UTF-8">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="format-detection" content="telephone=no">
@@ -18,7 +20,15 @@
     <link rel="preload" href="./fonts/PoxiaoPixel.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="./css/style.css">
 </head>
+
 <body>
+    <!-- 全局 BGM -->
+    <audio id="bgmAudio" src="./audio/bgm.mp3" loop preload="auto"></audio>
+    <div id="bgmToggle" class="bgm-toggle">
+        <div class="bgm-icon">🎵</div>
+        <div class="bgm-cross"></div>
+    </div>
+
     <canvas id="mainCanvas"></canvas>
     <div id="introOverlay" class="intro-overlay" aria-hidden="true">
         <div class="intro-shake-layer">
@@ -73,7 +83,8 @@
             <div class="poster-overlay-tip">神谕已定，长按图片保存并将好运分享给朋友</div>
             <div class="poster-overlay-actions">
                 <button id="posterReplayButton" class="poster-overlay-btn" type="button">再拜一次</button>
-                <button id="posterHomeButton" class="poster-overlay-btn poster-overlay-btn-secondary" type="button">返回首页</button>
+                <button id="posterHomeButton" class="poster-overlay-btn poster-overlay-btn-secondary"
+                    type="button">返回首页</button>
             </div>
         </div>
     </div>
@@ -96,4 +107,5 @@
     <script src="./js/scenes/stickman.js"></script>
     <script src="./js/main.js?v=20260426b"></script>
 </body>
+
 </html>

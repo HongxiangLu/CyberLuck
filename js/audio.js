@@ -6,8 +6,12 @@ var Audio = (function () {
 
     var audioCtx = null;
     var _initialized = false;
+    var _bgmAudio = null;
+    var _bgmToggle = null;
+    var _bgmIcon = null;
+    var _bgmMuted = false;
 
-    /** 首次用户交互时初始化 AudioContext（iOS Safari 要求） */
+    /** 首次用户交互时初始化 AudioContext 和 BGM */
     function init() {
         if (_initialized) return;
         try {
@@ -21,6 +25,49 @@ var Audio = (function () {
                 _initialized = true;
             }
         } catch (e) { /* 静默降级 */ }
+
+        // BGM 初始化逻辑
+        _bgmAudio = document.getElementById('bgmAudio');
+        _bgmToggle = document.getElementById('bgmToggle');
+        if (_bgmToggle) {
+            _bgmIcon = _bgmToggle.querySelector('.bgm-icon');
+            _bgmToggle.addEventListener('click', _toggleBGM);
+        }
+        
+        if (_bgmAudio && !_bgmMuted) {
+            var playPromise = _bgmAudio.play();
+            if (playPromise !== undefined) {
+                playPromise.then(function() {
+                    _updateBGMUI();
+                }).catch(function(err) {
+                    console.log("BGM 自动播放被浏览器拦截，需要用户进一步交互", err);
+                });
+            } else {
+                _updateBGMUI();
+            }
+        }
+    }
+
+    function _toggleBGM() {
+        if (!_bgmAudio) return;
+        _bgmMuted = !_bgmMuted;
+        if (_bgmMuted) {
+            _bgmAudio.pause();
+        } else {
+            _bgmAudio.play();
+        }
+        _updateBGMUI();
+    }
+
+    function _updateBGMUI() {
+        if (!_bgmToggle || !_bgmIcon) return;
+        if (_bgmMuted) {
+            _bgmToggle.classList.add('is-muted');
+            _bgmIcon.classList.remove('is-playing');
+        } else {
+            _bgmToggle.classList.remove('is-muted');
+            _bgmIcon.classList.add('is-playing');
+        }
     }
 
     /** 确保上下文激活 */

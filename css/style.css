@@ -983,3 +983,56 @@ html, body {
         padding-right: env(safe-area-inset-right);
     }
 }
+
+/* ====== 全局 BGM 图标 ====== */
+.bgm-toggle {
+    position: fixed;
+    top: max(16px, env(safe-area-inset-top));
+    left: max(16px, env(safe-area-inset-left));
+    z-index: 9000;
+    width: 40px;
+    height: 40px;
+    background: rgba(36, 17, 63, 0.7);
+    border: 2px solid #63efff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    pointer-events: auto;
+    box-shadow: 0 0 10px rgba(99, 239, 255, 0.4);
+    transition: transform 0.2s;
+}
+
+.bgm-toggle:active {
+    transform: scale(0.9);
+}
+
+.bgm-icon {
+    font-size: 20px;
+    line-height: 1;
+    user-select: none;
+}
+
+.bgm-icon.is-playing {
+    animation: bgm-rotate 4s linear infinite;
+}
+
+.bgm-cross {
+    position: absolute;
+    width: 100%;
+    height: 3px;
+    background: #ff2a2a;
+    transform: rotate(45deg);
+    box-shadow: 0 0 4px #000;
+    display: none;
+}
+
+.bgm-toggle.is-muted .bgm-cross {
+    display: block;
+}
+
+@keyframes bgm-rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
