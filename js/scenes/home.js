@@ -9,6 +9,8 @@ var HomeScene = (function () {
     var _layout = null;
     var _time = 0;
     var _heroImg = null;
+    var _coins = [];
+    var _coinEls = [];
     var _clickAnim = 0;
     var _touchHandler = null;
     var _starterClaimed = false;
@@ -62,7 +64,7 @@ var HomeScene = (function () {
             heroCenterX: w / 2,
             heroCenterY: topPanelY + topPanelH * (isPhone ? 0.63 : 0.64),
             heroHeight: isPhone ? Math.min(146, h * 0.19) : 150,
-            hintY: topPanelY + topPanelH - (isPhone ? 28 : 20),
+            hintY: buttonPanelY + (isPhone ? 18 : 20),
             buttonW: buttonW,
             buttonH: buttonH,
             buttonGap: buttonGap,
@@ -101,6 +103,123 @@ var HomeScene = (function () {
         };
     }
 
+    function _drawTapBadge(ctx, x, y, t) {
+        var bob = Math.sin(t * 1.2) * 0.8;
+        ctx.save();
+        ctx.translate(x, y + bob);
+        ctx.font = '13px "PoxiaoPixel"';
+        ctx.textAlign = 'center';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = Draw.THEME.ink;
+        ctx.strokeText('点我~', 0, 0);
+        ctx.fillStyle = '#ffe26a';
+        ctx.fillText('点我~', 0, 0);
+        ctx.restore();
+    }
+
+    function _resetCoins() {
+        var slots = [
+            { dx: -0.56, dy: 0.21, jx: 0.03, jy: 0.03 },
+            { dx: 0.56, dy: 0.14, jx: 0.03, jy: 0.03 }
+        ];
+        _coins = [];
+        for (var k = 0; k < slots.length; k++) {
+            var slot = slots[k];
+            _coins.push({
+                dx: slot.dx + (Math.random() - 0.5) * slot.jx,
+                dy: slot.dy + (Math.random() - 0.5) * slot.jy,
+                scale: 0.72 + Math.random() * 0.06,
+                phase: Math.random() * Math.PI * 2,
+                hiddenUntil: 0,
+                pendingRespawn: false
+            });
+        }
+    }
+
+    function _getCoinMetrics(layout, hero, hoverY) {
+        var baseSize = layout.isPhone ? 17 : 20;
+        var list = [];
+        for (var i = 0; i < _coins.length; i++) {
+            var coin = _coins[i];
+            if (coin.hiddenUntil > _time) {
+                continue;
+            }
+            if (coin.pendingRespawn) {
+                _respawnCoin(coin);
+                coin.pendingRespawn = false;
+            }
+            list.push({
+                coin: coin,
+                size: baseSize * coin.scale,
+                x: hero.cx + hero.h * coin.dx,
+                y: hero.cy + hero.h * coin.dy,
+                alpha: 0.12 + (Math.sin(_time * 0.7 + coin.phase) + 1) * 0.34
+            });
+        }
+        return list;
+    }
+
+    function _respawnCoin(coin) {
+        var respawnSlots = [
+            { dx: -0.56, dy: 0.21, jx: 0.03, jy: 0.03 },
+            { dx: 0.56, dy: 0.14, jx: 0.03, jy: 0.03 }
+        ];
+        var slot = respawnSlots[Math.floor(Math.random() * respawnSlots.length)];
+        coin.dx = slot.dx + (Math.random() - 0.5) * slot.jx;
+        coin.dy = slot.dy + (Math.random() - 0.5) * slot.jy;
+        coin.scale = 0.72 + Math.random() * 0.06;
+        coin.phase = Math.random() * Math.PI * 2;
+        coin.hiddenUntil = 0;
+    }
+
+    function _ensureCoinElements() {
+        if (_coinEls.length) return;
+        for (var i = 0; i < 2; i++) {
+            var el = document.createElement('img');
+            el.src = './images/home/golden_coin.gif';
+            el.alt = '金币';
+            el.style.position = 'fixed';
+            el.style.pointerEvents = 'none';
+            el.style.zIndex = '6';
+            el.style.transform = 'translate(-50%, -50%)';
+            el.style.imageRendering = 'pixelated';
+            el.style.display = 'none';
+            document.body.appendChild(el);
+            _coinEls.push(el);
+        }
+    }
+
+    function _syncCoinElements(metrics, canvasW, canvasH) {
+        _ensureCoinElements();
+        var rect = Engine.getCanvas().getBoundingClientRect();
+        var scaleX = rect.width / canvasW;
+        var scaleY = rect.height / canvasH;
+        for (var i = 0; i < _coinEls.length; i++) {
+            var el = _coinEls[i];
+            var item = metrics[i];
+            if (!item) {
+                el.style.display = 'none';
+                continue;
+            }
+            el.style.display = 'block';
+            el.style.left = (rect.left + item.x * scaleX) + 'px';
+            el.style.top = (rect.top + item.y * scaleY) + 'px';
+            el.style.width = (item.size * scaleX) + 'px';
+            el.style.height = (item.size * scaleY) + 'px';
+            el.style.opacity = String(item.alpha);
+        }
+    }
+
+    function _destroyCoinElements() {
+        for (var i = 0; i < _coinEls.length; i++) {
+            if (_coinEls[i] && _coinEls[i].parentNode) {
+                _coinEls[i].parentNode.removeChild(_coinEls[i]);
+            }
+        }
+        _coinEls = [];
+    }
+
     function init() {
         UI.clearButtons();
         buttons = [];
@@ -111,6 +230,8 @@ var HomeScene = (function () {
             _heroImg.src = './images/李诡祖增福财神.png';
         }
         _starterClaimed = _readStarterClaimed();
+        _resetCoins();
+        _ensureCoinElements();
 
         // 生成装饰祥云
         for (var i = 0; i < 6; i++) {
@@ -176,9 +297,39 @@ var HomeScene = (function () {
             var layout = _syncLayout(w, h);
             var hero = _getHeroMetrics(layout);
             
-            var hoverY = Math.sin(_time * 2.5) * 6;
+            var hoverY = Math.sin(_time * 1.35) * 4;
             var cx = hero.cx;
             var cy = hero.cy + hoverY;
+            var coinMetrics = _getCoinMetrics(layout, hero, hoverY);
+            for (var i = 0; i < coinMetrics.length; i++) {
+                var coin = coinMetrics[i];
+                var hitRadius = coin.size * 0.42;
+                var dx = x - coin.x;
+                var dy = y - coin.y;
+                if (dx * dx + dy * dy <= hitRadius * hitRadius) {
+                    Audio.init();
+                    Audio.playSuccess();
+                    Device.tapVibrate();
+                    MeritSystem.addPoints(9);
+                    MeritSystem.showToast('金币功德 +9', 'success');
+                    Engine.addFloatingText(coin.x, coin.y - coin.size * 0.55, '+9', '#FFD700', 22);
+                    Engine.addGoldBurst(coin.x, coin.y, {
+                        count: 12,
+                        speed: 2.4,
+                        ringRadius: coin.size * 0.5,
+                        upwardLift: 0.24,
+                        flash: true,
+                        flashCoreRadius: 8,
+                        flashHaloRadius: 16,
+                        flashGrow: 1.4,
+                        flashDecay: 0.08,
+                        pixel: true
+                    });
+                    coin.coin.hiddenUntil = _time + 1.6;
+                    coin.coin.pendingRespawn = true;
+                    return;
+                }
+            }
 
             // 检测是否点击在财神区域内
             if (x > cx - hero.w / 2 && x < cx + hero.w / 2 && y > cy - hero.h / 2 && y < cy + hero.h / 2) {
@@ -255,8 +406,10 @@ var HomeScene = (function () {
         if (_clickAnim < 0.01) _clickAnim = 0;
 
         // 小财神预览动效（上下悬浮 + 点击缩放）
-        var hoverY = Math.sin(_time * 2.5) * 6;
+        var hoverY = Math.sin(_time * 1.35) * 4;
         var scale = 1.0 + _clickAnim * 0.15; // 点击时放大 15%
+        var coinMetrics = _getCoinMetrics(layout, hero, hoverY);
+        _syncCoinElements(coinMetrics, w, h);
         
         ctx.save();
         if (_heroImg && _heroImg.complete) {
@@ -275,17 +428,31 @@ var HomeScene = (function () {
         }
         ctx.restore();
 
+        _drawTapBadge(ctx, hero.cx - hero.w * 0.62, hero.cy - hero.h * 0.28, _time);
+
         if (!_starterClaimed) {
-            var hintAlpha = 0.4 + Math.sin(_time * 1.6) * 0.25;
+            var hintAlpha = 0.62 + Math.sin(_time * 1.6) * 0.18;
             ctx.save();
             ctx.font = '13px "PoxiaoPixel"';
             ctx.textAlign = 'center';
             ctx.lineJoin = 'round';
             ctx.lineWidth = 3;
             ctx.strokeStyle = 'rgba(36,17,63,' + hintAlpha + ')';
-            ctx.strokeText('点我获得初始功德', w / 2, layout.hintY);
-            ctx.fillStyle = 'rgba(255,242,193,' + hintAlpha + ')';
-            ctx.fillText('点我获得初始功德', w / 2, layout.hintY);
+            ctx.strokeText('点财神领初始功德，点金币额外 +9', w / 2, layout.hintY);
+            ctx.fillStyle = 'rgba(255,236,133,' + hintAlpha + ')';
+            ctx.fillText('点财神领初始功德，点金币额外 +9', w / 2, layout.hintY);
+            ctx.restore();
+        } else {
+            var coinHintAlpha = 0.56 + Math.sin(_time * 1.6) * 0.16;
+            ctx.save();
+            ctx.font = '13px "PoxiaoPixel"';
+            ctx.textAlign = 'center';
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = 'rgba(36,17,63,' + coinHintAlpha + ')';
+            ctx.strokeText('金币可精准点击，每次 +9 功德', w / 2, layout.hintY);
+            ctx.fillStyle = 'rgba(255,236,133,' + coinHintAlpha + ')';
+            ctx.fillText('金币可精准点击，每次 +9 功德', w / 2, layout.hintY);
             ctx.restore();
         }
 
@@ -299,6 +466,7 @@ var HomeScene = (function () {
     function destroy() {
         UI.clearButtons();
         buttons = [];
+        _destroyCoinElements();
         var canvas = Engine.getCanvas();
         if (_touchHandler) {
             canvas.removeEventListener('touchstart', _touchHandler);

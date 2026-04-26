@@ -26,20 +26,29 @@ var StickmanScene = (function () {
         head: null,
         torso: null,
         arm: null,
+        armFlipped: null,
         leg: null,
+        legFlipped: null,
         foot: null
     };
+    var GLOBAL_SPRITE_SCALE = 0.26;
+    var TORSO_WIDTH = 56;
+    var SHOULDER_EDGE_TUNE = 7;
+    var HIP_EDGE_TUNE = 9;
+    var COLLAR_TUNE = 10;
+    var ARM_REACH_RATIO = 0.84;
+    var ARM_PIVOT_X_TUNE = -12;
 
     var _touchStartH = null, _touchMoveH = null, _touchEndH = null;
 
     function _loadStickmanSprites(done) {
-        if (_spritesReady && _spriteSet.head && _spriteSet.torso && _spriteSet.arm && _spriteSet.leg && _spriteSet.foot) {
+        if (_spritesReady && _spriteSet.head && _spriteSet.torso && _spriteSet.arm && _spriteSet.armFlipped && _spriteSet.leg && _spriteSet.legFlipped && _spriteSet.foot) {
             done();
             return;
         }
 
         var token = ++_spriteLoadToken;
-        var names = ['head', 'torso', 'arm', 'leg', 'foot'];
+        var names = ['head', 'torso', 'arm', 'armFlipped', 'leg', 'legFlipped', 'foot'];
         var remaining = names.length;
 
         function finish() {
@@ -62,7 +71,10 @@ var StickmanScene = (function () {
                 var img = new Image();
                 img.onload = finish;
                 img.onerror = finish;
-                img.src = './images/stickman/' + name + '.png';
+                var fileName = name === 'armFlipped' ? 'arm_flipped.png'
+                    : name === 'legFlipped' ? 'leg_flipped.png'
+                    : name + '.png';
+                img.src = './images/stickman/' + fileName;
                 _spriteSet[name] = img;
             })(names[i]);
         }
@@ -70,34 +82,29 @@ var StickmanScene = (function () {
 
     /* ====== 骨骼初始化 ====== */
     function _initSegments() {
-        var leftFootX = W * 0.47;
-        var shin = 70, thigh = 66, torso = 88, headL = 28;
-        var uArm = 54, fArm = 48;
+        // 动态根据贴图实际缩放后的高度设置骨骼长度，彻底消除视觉与物理之间的缝隙
+        var scale = _getSpriteGlobalScale();
+        var torsoLen = (_spriteSet.torso && _spriteSet.torso.naturalHeight) ? (_spriteSet.torso.naturalHeight * scale * 1.02) : 96;
+        var torsoW   = (_spriteSet.torso && _spriteSet.torso.naturalWidth)  ? (_spriteSet.torso.naturalWidth * scale * 1.02) : TORSO_WIDTH;
+        // arm.png 是横向拆件，骨长必须按宽度估算，而不是高度。
+        var armLen   = (_spriteSet.arm && _spriteSet.arm.naturalWidth)      ? (_spriteSet.arm.naturalWidth * scale * 0.92 * ARM_REACH_RATIO) : 98;
+        var legLen   = (_spriteSet.leg && _spriteSet.leg.naturalHeight)     ? (_spriteSet.leg.naturalHeight * scale * 1.02) : 122;
+        var headL    = 26;
 
         // angle: 绝对世界角 (0=正上方, PI/2=右, PI=下, -PI/2=左)
-        // attachRatio: 在 parent 线段上的比例位置 (0=pivot端, 1=end端)
-        // offX: 垂直于 parent 方向的侧偏移 (parent 本地坐标)
         _segments = [
-            { id:'lShin',  pid:null,     angle:0,    len:shin,  thick:9,  color:'#3a5f5f', lbl:'左小腿',
-              fpx:leftFootX, fpy:0/*FLOOR_Y*/, ar:1, ox:0 },
-            { id:'lThigh', pid:'lShin',  angle:0,    len:thigh, thick:11, color:'#3a5f5f', lbl:'左大腿',
-              ar:1, ox:0 },
-            { id:'torso',  pid:'lThigh', angle:0,    len:torso, thick:14, color:'#c0392b', lbl:'躯干',
-              ar:1, ox:0 },
+            { id:'torso',  pid:null, angle:0.02, len:torsoLen, thick:14, color:'#c0392b', lbl:'躯干',
+              fpx:W * 0.48, fpy:0, boxW: torsoW },
             { id:'head',   pid:'torso',  angle:0,    len:headL, thick:0,  color:'#FFDEAD', lbl:'头部',
-              ar:1, ox:0, isHead:true },
-            { id:'lUArm',  pid:'torso',  angle:Math.PI*0.85,  len:uArm, thick:8, color:'#c0392b', lbl:'左大臂',
-              ar:0.92, ox:-8 },
-            { id:'lFArm',  pid:'lUArm',  angle:Math.PI*0.9,   len:fArm, thick:7, color:'#FFDEAD', lbl:'左小臂',
-              ar:1, ox:0 },
-            { id:'rUArm',  pid:'torso',  angle:Math.PI*1.15,   len:uArm, thick:8, color:'#c0392b', lbl:'右大臂',
-              ar:0.92, ox:8 },
-            { id:'rFArm',  pid:'rUArm',  angle:Math.PI*1.1,    len:fArm, thick:7, color:'#FFDEAD', lbl:'右小臂',
-              ar:1, ox:0 },
-            { id:'rThigh', pid:'torso',  angle:Math.PI,        len:thigh,thick:11,color:'#2F4F4F', lbl:'右大腿',
-              ar:0, ox:8 },
-            { id:'rShin',  pid:'rThigh', angle:Math.PI,        len:shin, thick:9, color:'#2F4F4F', lbl:'右小腿',
-              ar:1, ox:0 }
+              anchor:'neck', side:0, isHead:true },
+            { id:'lArm',   pid:'torso',  angle:2.2, len:armLen, thick:8, color:'#c0392b', lbl:'左手',
+              anchor:'shoulder', side:-1 },
+            { id:'rArm',   pid:'torso',  angle:-2.2, len:armLen, thick:8, color:'#c0392b', lbl:'右手',
+              anchor:'shoulder', side:1 },
+            { id:'lLeg',   pid:'torso',  angle:Math.PI, len:legLen, thick:11, color:'#2F4F4F', lbl:'左脚',
+              anchor:'hip', side:-1 },
+            { id:'rLeg',   pid:'torso',  angle:Math.PI, len:legLen, thick:11, color:'#2F4F4F', lbl:'右脚',
+              anchor:'hip', side:1 }
         ];
 
         _segMap = {};
@@ -113,38 +120,30 @@ var StickmanScene = (function () {
                 _segMap[seg.pid].children.push(seg);
             }
         }
-        // 设置 root 的固定 pivot Y
-        _segments[0].fpy = FLOOR_Y;
+        // Root 改为躯干中心点，后续所有肢体都从这里推导锚点。
+        _segments[0].fpy = H * 0.56;
         _computeFK();
     }
 
     function _buildBowPose() {
         return {
-            lShin: 0.03,
-            lThigh: 0.12,
-            torso: 0.68,
-            head: 0.76,
-            lUArm: 1.72,
-            lFArm: 1.08,
-            rUArm: 1.46,
-            rFArm: 1.88,
-            rThigh: Math.PI - 0.16,
-            rShin: Math.PI - 0.06
+            torso: 0,
+            head: 0,
+            lArm: 2.42,
+            rArm: -2.42,
+            lLeg: Math.PI,
+            rLeg: Math.PI
         };
     }
 
     function _buildLoosePose() {
         return {
-            lShin: 0.04,
-            lThigh: -0.12,
             torso: 0.22,
             head: 0.28,
-            lUArm: 2.56,
-            lFArm: 2.9,
-            rUArm: 3.64,
-            rFArm: 3.28,
-            rThigh: Math.PI + 0.16,
-            rShin: Math.PI + 0.04
+            lArm: -0.32,
+            rArm: 0.32,
+            lLeg: -Math.PI + 0.16,
+            rLeg: Math.PI - 0.16
         };
     }
 
@@ -191,15 +190,19 @@ var StickmanScene = (function () {
 
     function _getFloatAnchor() {
         return {
-            x: W * 0.48,
-            y: H * 0.655
+            x: W / 2,
+            y: H * 0.56
         };
     }
 
     function _getGroundAnchor() {
+        var torso = _segMap.torso;
+        var leg = _segMap.lLeg || _segMap.rLeg;
+        var torsoHalf = torso ? torso.len / 2 : 48;
+        var legLen = leg ? leg.len : 122;
         return {
-            x: W * 0.48,
-            y: FLOOR_Y
+            x: W / 2,
+            y: FLOOR_Y - torsoHalf - legLen + 6
         };
     }
 
@@ -228,6 +231,52 @@ var StickmanScene = (function () {
     }
 
     /* ====== 前向运动学 ====== */
+    function _getTorsoFrame(seg, centerX, centerY) {
+        centerX = centerX == null ? seg.fpx : centerX;
+        centerY = centerY == null ? seg.fpy : centerY;
+        var dirX = Math.sin(seg.angle);
+        var dirY = -Math.cos(seg.angle);
+        var rightX = -dirY;
+        var rightY = dirX;
+        var halfLen = seg.len / 2;
+
+        return {
+            cx: centerX,
+            cy: centerY,
+            dirX: dirX,
+            dirY: dirY,
+            rightX: rightX,
+            rightY: rightY,
+            halfLen: halfLen,
+            halfWidth: (seg.boxW || TORSO_WIDTH) / 2,
+            topX: centerX + dirX * halfLen,
+            topY: centerY + dirY * halfLen,
+            bottomX: centerX - dirX * halfLen,
+            bottomY: centerY - dirY * halfLen
+        };
+    }
+
+    function _getTorsoAnchor(parent, child) {
+        var frame = parent._frame || _getTorsoFrame(parent);
+        var axial = 0;
+        var lateral = 0;
+
+        if (child.anchor === 'neck') {
+            axial = frame.halfLen;
+        } else if (child.anchor === 'shoulder') {
+            axial = frame.halfLen - COLLAR_TUNE;
+            lateral = frame.halfWidth - SHOULDER_EDGE_TUNE;
+        } else if (child.anchor === 'hip') {
+            axial = -frame.halfLen;
+            lateral = frame.halfWidth - HIP_EDGE_TUNE;
+        }
+
+        return {
+            x: frame.cx + frame.dirX * axial + frame.rightX * lateral * (child.side || 0),
+            y: frame.cy + frame.dirY * axial + frame.rightY * lateral * (child.side || 0)
+        };
+    }
+
     function _computeFK() {
         var rootBob = 0;
         if (_phase === 'prepare' || _phase === 'result') {
@@ -237,26 +286,36 @@ var StickmanScene = (function () {
         for (var i = 0; i < _segments.length; i++) {
             var s = _segments[i];
             if (!s.pid) {
-                // 根节点：固定 pivot
-                s.px = s.fpx;
-                s.py = s.fpy + rootBob;
+                // Root (躯干) 始终作为父子链的源头
+                s._frame = _getTorsoFrame(s, s.fpx, s.fpy + rootBob);
+                // 躯干的 px, py 定义为旋转轴心（颈部/顶部中点）
+                s.px = s._frame.topX;
+                s.py = s._frame.topY;
+                // ex, ey 定义为末端（胯部/底部中点）
+                s.ex = s._frame.bottomX;
+                s.ey = s._frame.bottomY;
             } else {
                 var p = _segMap[s.pid];
-                // attach 点 = p.pivot + (p.end - p.pivot) * attachRatio
-                var ax = p.px + (p.ex - p.px) * s.ar;
-                var ay = p.py + (p.ey - p.py) * s.ar;
-                // 侧偏移：垂直于 parent 方向
-                if (s.ox !== 0) {
-                    var pdx = p.ex - p.px, pdy = p.ey - p.py;
-                    var pLen = Math.sqrt(pdx * pdx + pdy * pdy) || 1;
-                    ax += (-pdy / pLen) * s.ox;
-                    ay += (pdx / pLen) * s.ox;
+                var ax = 0;
+                var ay = 0;
+
+                if (p.id === 'torso') {
+                    // 核心逻辑：子节点（手臂、腿、头）的起点必须锁死在躯干的特定锚点上
+                    var torsoAnchor = _getTorsoAnchor(p, s);
+                    ax = torsoAnchor.x;
+                    ay = torsoAnchor.y;
+                } else {
+                    // 严格父子链：子节点起点 = 父节点终点
+                    ax = p.ex;
+                    ay = p.ey;
                 }
+                
+                // 绝对坐标更新
                 s.px = ax;
                 s.py = ay;
+                s.ex = s.px + s.len * Math.sin(s.angle);
+                s.ey = s.py - s.len * Math.cos(s.angle);
             }
-            s.ex = s.px + s.len * Math.sin(s.angle);
-            s.ey = s.py - s.len * Math.cos(s.angle);
         }
     }
 
@@ -332,17 +391,17 @@ var StickmanScene = (function () {
             e.preventDefault();
             if (_phase !== 'playing' || _dropProgress < 1) return;
             var pos = _touchPos(e);
-            // 寻找被点击的肢节
-            var best = null, bestD = 30;
-            for (var i = 0; i < _segments.length; i++) {
-                var s = _segments[i];
-                var d = _distToSegment(pos.x, pos.y, s.px, s.py, s.ex, s.ey);
-                if (d < bestD) { bestD = d; best = s; }
+            var handles = _getDragHandles();
+            var best = null, bestD = 34;
+            for (var i = 0; i < handles.length; i++) {
+                var h = handles[i];
+                var d = _distToPoint(pos.x, pos.y, h.x, h.y);
+                if (d < bestD) { bestD = d; best = h; }
             }
             if (best) {
-                _selectedSeg = best;
-                _dragPivotX = best.px;
-                _dragPivotY = best.py;
+                _selectedSeg = best.seg;
+                _dragPivotX = best.seg.px;
+                _dragPivotY = best.seg.py;
                 _dragStartAngle = Math.atan2(pos.x - _dragPivotX, -(pos.y - _dragPivotY));
                 Device.tapVibrate();
             }
@@ -383,33 +442,43 @@ var StickmanScene = (function () {
         return { x: t.clientX - r.left, y: t.clientY - r.top };
     }
 
-    function _distToSegment(px, py, ax, ay, bx, by) {
-        var dx = bx - ax, dy = by - ay;
-        var lenSq = dx * dx + dy * dy;
-        if (lenSq === 0) return Math.sqrt((px-ax)*(px-ax)+(py-ay)*(py-ay));
-        var t = Math.max(0, Math.min(1, ((px-ax)*dx+(py-ay)*dy)/lenSq));
-        var cx = ax + t * dx, cy = ay + t * dy;
-        return Math.sqrt((px-cx)*(px-cx)+(py-cy)*(py-cy));
+    function _getDragHandles() {
+        var handles = [];
+        var ids = ['lArm', 'rArm', 'lLeg', 'rLeg'];
+        for (var i = 0; i < ids.length; i++) {
+            var seg = _segMap[ids[i]];
+            if (!seg) continue;
+            handles.push({
+                seg: seg,
+                x: seg.ex,
+                y: seg.ey
+            });
+        }
+        return handles;
+    }
+
+    function _distToPoint(ax, ay, bx, by) {
+        var dx = ax - bx;
+        var dy = ay - by;
+        return Math.sqrt(dx * dx + dy * dy);
     }
 
     function _getNodeSnapshot() {
         var head = _segMap.head;
-        var lFArm = _segMap.lFArm;
-        var rFArm = _segMap.rFArm;
-        var lShin = _segMap.lShin;
-        var rShin = _segMap.rShin;
+        var lArm = _segMap.lArm;
+        var rArm = _segMap.rArm;
+        var lLeg = _segMap.lLeg;
+        var rLeg = _segMap.rLeg;
         var torso = _segMap.torso;
-        var rThigh = _segMap.rThigh;
-
-        var pelvisX = ((torso ? torso.px : W * 0.5) + (rThigh ? rThigh.px : W * 0.5)) / 2;
-        var pelvisY = ((torso ? torso.py : H * 0.6) + (rThigh ? rThigh.px != null ? rThigh.py : H * 0.6 : H * 0.6)) / 2;
+        var pelvisX = torso ? torso.ex : W * 0.5;
+        var pelvisY = torso ? torso.ey : H * 0.6;
 
         return {
             head: head ? { x: (head.px + head.ex) / 2, y: (head.py + head.ey) / 2 } : null,
-            leftHand: lFArm ? { x: lFArm.ex, y: lFArm.ey } : null,
-            rightHand: rFArm ? { x: rFArm.ex, y: rFArm.ey } : null,
-            leftKnee: lShin ? { x: lShin.ex, y: lShin.ey } : null,
-            rightKnee: rShin ? { x: rShin.ex, y: rShin.ey } : null,
+            leftHand: lArm ? { x: lArm.ex, y: lArm.ey } : null,
+            rightHand: rArm ? { x: rArm.ex, y: rArm.ey } : null,
+            leftFoot: lLeg ? { x: lLeg.ex, y: lLeg.ey } : null,
+            rightFoot: rLeg ? { x: rLeg.ex, y: rLeg.ey } : null,
             pelvis: { x: pelvisX, y: pelvisY },
             torso: torso ? { x: torso.px, y: torso.py, ex: torso.ex, ey: torso.ey } : null
         };
@@ -420,49 +489,51 @@ var StickmanScene = (function () {
         var head = nodes.head || { x: W * 0.5, y: H * 0.3 };
         var leftHand = nodes.leftHand || { x: W * 0.45, y: H * 0.45 };
         var rightHand = nodes.rightHand || { x: W * 0.55, y: H * 0.45 };
-        var leftKnee = nodes.leftKnee || { x: W * 0.45, y: FLOOR_Y };
-        var rightKnee = nodes.rightKnee || { x: W * 0.55, y: FLOOR_Y };
         var pelvis = nodes.pelvis || { x: W * 0.5, y: H * 0.55 };
-        var kneeNearFloorThreshold = Math.max(18, H * 0.035);
-        var torsoTiltThreshold = Math.max(42, W * 0.12);
+        var handJoinThreshold = Math.max(40, W * 0.075);
+        var handDistance = Math.sqrt(
+            Math.pow(leftHand.x - rightHand.x, 2) +
+            Math.pow(leftHand.y - rightHand.y, 2)
+        );
+        var upperBound = Math.min(head.y, pelvis.y);
+        var lowerBound = Math.max(head.y, pelvis.y);
+        var handsBetweenHeadAndPelvis =
+            leftHand.y > upperBound && leftHand.y < lowerBound &&
+            rightHand.y > upperBound && rightHand.y < lowerBound;
+        var handsAboveHead = leftHand.y < head.y && rightHand.y < head.y;
+        var handsCrossed = leftHand.x > rightHand.x;
 
-        var bothKneesNearFloor = Math.abs(FLOOR_Y - leftKnee.y) <= kneeNearFloorThreshold &&
-            Math.abs(FLOOR_Y - rightKnee.y) <= kneeNearFloorThreshold;
-        var handsAboveHead = leftHand.y <= head.y && rightHand.y <= head.y;
-        var torsoTwisted = Math.abs(head.x - pelvis.x) > torsoTiltThreshold;
-        var headBelowPelvis = head.y >= pelvis.y;
-
-        if (headBelowPelvis && bothKneesNearFloor) {
+        if (handDistance < handJoinThreshold && handsBetweenHeadAndPelvis) {
             return {
-                key: 'kowtow',
-                tag: '至诚磕头，万事顺遂',
-                quote: '诚心跪拜，霉运清零，财运福气双双到',
+                key: 'greeting',
+                tag: '拱手贺禧，财源广进',
+                quote: '姿势标准，诚意满满，今年必定大发！',
                 nodes: nodes
             };
         }
 
         if (handsAboveHead) {
             return {
-                key: 'wild',
-                tag: '拳脚拜年，百无禁忌',
-                quote: '不走寻常拜年路，自在逍遥无烦恼',
+                key: 'celebrate',
+                tag: '高举双手，拥抱财富',
+                quote: '元气满满迎财神，新的一年势不可挡！',
                 nodes: nodes
             };
         }
 
-        if (torsoTwisted) {
+        if (handsCrossed) {
             return {
-                key: 'tilted',
-                tag: '歪门邪道，好运绕道',
-                quote: '姿势不正福气偏，新一年主打随性自由',
+                key: 'crossed',
+                tag: '左右互搏，骨骼惊奇',
+                quote: '拜年拜出武林宗师风范，主打一个出其不意。',
                 nodes: nodes
             };
         }
 
         return {
-            key: 'formal',
-            tag: '规规矩矩，岁岁平安',
-            quote: '礼数周全，神明偏爱，全年顺风顺水',
+            key: 'loose',
+            tag: '随性瘫痪，躺平过年',
+            quote: '四肢虽然不受控，但松弛感绝对拿捏了。',
             nodes: nodes
         };
     }
@@ -486,41 +557,72 @@ var StickmanScene = (function () {
         return '#' + (1 << 24 | r << 16 | g << 8 | bl).toString(16).slice(1);
     }
 
-    function _drawBoneSprite(ctx, img, x1, y1, x2, y2, height, anchorX) {
+    function _getSpriteGlobalScale() {
+        return GLOBAL_SPRITE_SCALE;
+    }
+
+    function _drawFixedHingeSprite(ctx, img, x1, y1, x2, y2, opts) {
         if (!img || !img.complete || img.naturalWidth <= 0 || img.naturalHeight <= 0) return;
+        opts = opts || {};
         var dx = x2 - x1;
         var dy = y2 - y1;
-        var length = Math.sqrt(dx * dx + dy * dy) || 1;
-        var angle = Math.atan2(dy, dx);
-        var drawHeight = height || (length * (img.naturalHeight / Math.max(1, img.naturalWidth)));
-        var ax = anchorX == null ? 0 : anchorX;
+        var angle = Math.atan2(dy, dx) + (opts.rotationOffset || 0);
+        var scale = _getSpriteGlobalScale() * (opts.scaleMul == null ? 1 : opts.scaleMul);
+        var drawWidth = img.naturalWidth * scale;
+        var drawHeight = img.naturalHeight * scale;
+
+        var drawX = -drawWidth / 2 + (opts.offsetX || 0) * scale;
+        var drawY = (opts.offsetY || 0) * scale;
+
+        if (opts.anchorMode === 'left') {
+            // 横向拆件（手臂）以左边缘中点作为关节铰链。
+            drawX = (opts.offsetX || 0) * scale;
+            drawY = -drawHeight / 2 + (opts.offsetY || 0) * scale;
+        } else {
+            // 纵向拆件（躯干、腿）以顶部中点作为关节铰链。
+            drawX = -drawWidth / 2 + (opts.offsetX || 0) * scale;
+            drawY = (opts.offsetY || 0) * scale;
+        }
 
         ctx.save();
         ctx.translate(x1, y1);
         ctx.rotate(angle);
-        ctx.drawImage(img, -length * ax, -drawHeight / 2, length, drawHeight);
+        if (opts.flipX || opts.flipY) {
+            ctx.scale(opts.flipX ? -1 : 1, opts.flipY ? -1 : 1);
+        }
+        ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
         ctx.restore();
     }
 
     function _drawHeadSprite(ctx, seg) {
         var img = _spriteSet.head;
         if (!seg || !img || !img.complete || img.naturalWidth <= 0 || img.naturalHeight <= 0) return;
-        var cx = seg.ex;
-        var cy = seg.ey;
-        var size = Math.max(44, seg.len * 2.18);
-        var h = size * (img.naturalHeight / Math.max(1, img.naturalWidth));
-        ctx.drawImage(img, cx - size / 2, cy - h / 2, size, h);
+        var scale = _getSpriteGlobalScale() * 0.94;
+        var dw = img.naturalWidth * scale;
+        var dh = img.naturalHeight * scale;
+        // 头部锚点锁定在脖子旋转轴心（seg.px, seg.py）
+        var cx = seg.px;
+        var cy = seg.py; 
+        
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(seg.angle);
+        // 将头部的下边缘（约 85% 高度处）对准脖子
+        ctx.drawImage(img, -dw / 2, -dh * 0.85, dw, dh);
+        ctx.restore();
     }
 
     function _drawFootSprite(ctx, x, y, flip) {
         var img = _spriteSet.foot;
         if (!img || !img.complete || img.naturalWidth <= 0 || img.naturalHeight <= 0) return;
-        var w = 24;
-        var h = w * (img.naturalHeight / Math.max(1, img.naturalWidth));
+        var scale = _getSpriteGlobalScale() * 0.82;
+        var w = img.naturalWidth * scale;
+        var h = img.naturalHeight * scale;
         ctx.save();
         ctx.translate(x, y);
         if (flip) ctx.scale(-1, 1);
-        ctx.drawImage(img, -w * 0.35, -h * 0.45, w, h);
+        // 脚部锚点锁定在脚踝位置（贴图顶部）
+        ctx.drawImage(img, -w / 2, 0, w, h);
         ctx.restore();
     }
 
@@ -808,51 +910,56 @@ var StickmanScene = (function () {
     function _drawStickman(ctx) {
         var torso = _segMap.torso;
         var head = _segMap.head;
-        var lShin = _segMap.lShin;
-        var rShin = _segMap.rShin;
-        var drawOrder = ['rThigh','rShin','lShin','lThigh','torso','lUArm','lFArm','rUArm','rFArm'];
-        var heights = {
-            torso: 72,
-            lUArm: 30,
-            lFArm: 28,
-            rUArm: 30,
-            rFArm: 28,
-            lThigh: 34,
-            lShin: 28,
-            rThigh: 34,
-            rShin: 28
+        var lLeg = _segMap.lLeg;
+        var rLeg = _segMap.rLeg;
+
+        // 严格执行 Painter's Algorithm 遮挡顺序
+        // 1. 第一步：绘制双腿和双脚（底层）
+        var legIds = ['lLeg', 'rLeg'];
+        var legConfig = {
+            lLeg: { image: 'legFlipped', start: 'pivot', end: 'end', rotationOffset: -Math.PI / 2, offsetY: 0, scaleMul: 1.02 },
+            rLeg: { image: 'leg', start: 'pivot', end: 'end', rotationOffset: -Math.PI / 2, offsetY: 0, scaleMul: 1.02 }
         };
 
-        for (var di = 0; di < drawOrder.length; di++) {
-            var s = _segMap[drawOrder[di]];
+        for (var i = 0; i < legIds.length; i++) {
+            var s = _segMap[legIds[i]];
             if (!s) continue;
             if (s === _selectedSeg) _drawSelectionGlow(ctx, s);
-
-            var img = s.id === 'torso' ? _spriteSet.torso :
-                (s.id.indexOf('Arm') !== -1 ? _spriteSet.arm : _spriteSet.leg);
-            var anchorX = s.id === 'torso' ? 0.08 : 0;
-            _drawBoneSprite(ctx, img, s.px, s.py, s.ex, s.ey, heights[s.id], anchorX);
+            var cfg = legConfig[s.id];
+            var img = _spriteSet[cfg.image];
+            _drawFixedHingeSprite(ctx, img, s.px, s.py, s.ex, s.ey, cfg);
+            // 立即绘制对应的脚，确保脚在腿端点上
+            _drawFootSprite(ctx, s.ex, s.ey, s.id === 'lLeg');
         }
 
-        for (var ji = 0; ji < drawOrder.length; ji++) {
-            var jointSeg = _segMap[drawOrder[ji]];
-            if (!jointSeg) continue;
-            _drawJointPatch(ctx, jointSeg.px, jointSeg.py, jointSeg.id === 'torso' ? 5 : 4, '#241521');
+        // 2. 第二步：绘制躯干和头部（中层，遮挡大腿根部）
+        if (torso) {
+            if (torso === _selectedSeg) _drawSelectionGlow(ctx, torso);
+            // 将 start 改为 'pivot'，end 改为 'end'，使其从脖子(px)画到胯部(ex)
+            var tCfg = { image: 'torso', start: 'pivot', end: 'end', rotationOffset: -Math.PI / 2, offsetY: 0, scaleMul: 1.02 };
+            var tImg = _spriteSet.torso;
+            _drawFixedHingeSprite(ctx, tImg, torso.px, torso.py, torso.ex, torso.ey, tCfg);
+        }
+        if (head) {
+            if (head === _selectedSeg) _drawSelectionGlow(ctx, head);
+            _drawHeadSprite(ctx, head);
         }
 
-        if (head === _selectedSeg) _drawSelectionGlow(ctx, head);
-        _drawHeadSprite(ctx, head);
+        // 3. 第三步：绘制双臂（顶层，遮挡胸口）
+        var armIds = ['lArm', 'rArm'];
+        var armConfig = {
+            // arm.png 是横向素材，关节在左边缘中点，不能再按纵向肢体处理。
+            lArm: { image: 'armFlipped', start: 'pivot', end: 'end', rotationOffset: 0, anchorMode: 'left', offsetX: ARM_PIVOT_X_TUNE, offsetY: 0, scaleMul: 0.92 },
+            rArm: { image: 'arm', start: 'pivot', end: 'end', rotationOffset: 0, anchorMode: 'left', offsetX: ARM_PIVOT_X_TUNE, offsetY: 0, scaleMul: 0.92 }
+        };
 
-        if (torso && head) {
-            _drawJointPatch(ctx, torso.ex, torso.ey, 4, '#2c1a24');
-        }
-        if (lShin) {
-            _drawJointPatch(ctx, lShin.ex, lShin.ey, 3, '#261925');
-            _drawFootSprite(ctx, lShin.px, lShin.py, true);
-        }
-        if (rShin) {
-            _drawJointPatch(ctx, rShin.ex, rShin.ey, 3, '#261925');
-            _drawFootSprite(ctx, rShin.ex, rShin.ey, false);
+        for (var j = 0; j < armIds.length; j++) {
+            var s = _segMap[armIds[j]];
+            if (!s) continue;
+            if (s === _selectedSeg) _drawSelectionGlow(ctx, s);
+            var cfg = armConfig[s.id];
+            var img = _spriteSet[cfg.image];
+            _drawFixedHingeSprite(ctx, img, s.px, s.py, s.ex, s.ey, cfg);
         }
     }
 
@@ -935,9 +1042,9 @@ var StickmanScene = (function () {
             UI.drawRoundedRect(ctx, w / 2 - titleW / 2, h * 0.06, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
             UI.drawTitle(ctx, '拜年姿势王', w/2, h*0.06 + titleH/2 + 2, 28, Draw.THEME.gold);
             _drawGuideCard(ctx, w * 0.14, h * 0.14, w * 0.72, [
-                '空中示范：标准弯腰作揖',
-                '双手合拢，低头，含胸前倾',
-                '开始后他会落地散开，8 秒内拖回拜年姿势'
+                '目标姿势：正面拱手拜年',
+                '左右双手拉到胸前，完成合拢定格',
+                '将左右双手拉拽至胸前合拢，8 秒内完成定格'
             ], Draw.THEME.cyan);
         } else if (_phase === 'playing') {
             // 倒计时
@@ -951,10 +1058,10 @@ var StickmanScene = (function () {
                     '等姿势散开后，立刻开摆'
                 ], Draw.THEME.gold);
             } else {
-                var hint = _selectedSeg ? ('正在调整：' + _selectedSeg.lbl) : '先扶正躯干，再把双手摆回胸前作揖';
+                var hint = _selectedSeg ? ('正在调整：' + _selectedSeg.lbl) : '把左右双手拉回胸前，拼出正面拱手拜年';
                 _drawGuideCard(ctx, w * 0.16, h * 0.14, w * 0.68, [
                     hint,
-                    '拖动手臂、腿和头部，拼回标准拜年姿势'
+                    '只可拖拽手和脚端点，整条肢体会绕肩膀/胯部旋转'
                 ], Draw.THEME.cyan);
             }
         } else if (_phase === 'result') {
