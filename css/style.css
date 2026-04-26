@@ -240,19 +240,19 @@ html, body {
     position: relative;
     z-index: 1;
     background:
-        linear-gradient(180deg, #1a0b2e, #090214),
+        linear-gradient(180deg, #160f29, #0d0818),
         repeating-linear-gradient(
             0deg,
-            rgba(0, 229, 255, 0.05) 0 2px,
-            rgba(0, 229, 255, 0) 2px 6px
+            rgba(0, 243, 255, 0.03) 0 2px,
+            rgba(0, 243, 255, 0) 2px 6px
         ),
-        #130524;
-    border: 4px solid #00e5ff;
+        #0d0818;
+    border: 4px solid #00f3ff;
     box-shadow:
-        0 0 0 4px #090214 inset,
-        0 0 0 8px rgba(0, 229, 255, 0.2) inset,
-        8px 8px 0 rgba(10, 2, 20, 0.8),
-        0 0 20px rgba(0, 229, 255, 0.4);
+        0 0 0 4px #0d0818 inset,
+        0 0 0 8px rgba(0, 243, 255, 0.15) inset,
+        8px 8px 0 rgba(0, 0, 0, 0.8),
+        0 0 20px rgba(0, 243, 255, 0.3);
     padding: 70px 24px 24px;
 }
 
@@ -262,8 +262,8 @@ html, body {
     position: absolute;
     width: 14px;
     height: 14px;
-    background: #00e5ff;
-    box-shadow: 0 0 8px rgba(0, 229, 255, 0.6);
+    background: #ff007a;
+    box-shadow: 0 0 8px rgba(255, 0, 122, 0.6);
 }
 
 .fortune-panel::before {
@@ -283,55 +283,55 @@ html, body {
     z-index: 3;
     min-width: 92px;
     height: 42px;
-    border: 3px solid #ff0055;
-    background: linear-gradient(180deg, #990033, #4d001a);
-    color: #ffb3d1;
+    border: 3px solid #00f3ff;
+    background: linear-gradient(180deg, #0f2540, #081426);
+    color: #00f3ff;
     font: 15px "PoxiaoPixel", sans-serif;
     box-shadow:
-        0 0 0 3px #330011 inset,
-        4px 4px 0 rgba(10, 2, 20, 0.9),
-        0 0 12px rgba(255, 0, 85, 0.4);
+        0 0 0 3px #050a14 inset,
+        4px 4px 0 rgba(0, 0, 0, 0.9),
+        0 0 12px rgba(0, 243, 255, 0.4);
 }
 
 .fortune-title {
     margin: 0 auto 16px;
     width: fit-content;
     padding: 10px 18px 8px;
-    border: 3px solid #ff0055;
+    border: 3px solid #ffbd00;
     background:
-        linear-gradient(180deg, #cc0044, #80002b),
-        #990033;
+        linear-gradient(180deg, #ff007a, #b30056),
+        #ff007a;
     color: #ffffff;
     text-align: center;
     font-size: 26px;
     letter-spacing: 0.08em;
     box-shadow:
-        0 0 0 3px #4d001a inset,
-        4px 4px 0 rgba(10, 2, 20, 0.92);
+        0 0 0 3px #4d0025 inset,
+        4px 4px 0 rgba(0, 0, 0, 0.92);
     text-shadow:
-        0 0 10px rgba(255, 0, 85, 0.8),
-        0 0 4px #fff;
+        0 2px 0 #b30056,
+        0 0 8px rgba(255, 0, 122, 0.8);
 }
 
 .fortune-rule {
     min-height: 86px;
     padding: 14px 14px 12px;
-    border: 3px solid #b142f5;
+    border: 3px solid #00f3ff;
     background:
-        linear-gradient(180deg, rgba(60, 15, 100, 0.6), rgba(30, 5, 50, 0.4)),
+        linear-gradient(180deg, rgba(0, 243, 255, 0.08), rgba(0, 243, 255, 0.03)),
         repeating-linear-gradient(
             180deg,
-            rgba(230, 180, 255, 0.08) 0 2px,
-            rgba(230, 180, 255, 0) 2px 8px
+            rgba(0, 243, 255, 0.05) 0 2px,
+            rgba(0, 243, 255, 0) 2px 8px
         ),
-        #1d0533;
-    color: #e6b3ff;
+        #0d0818;
+    color: #e0ffff;
     text-align: center;
     line-height: 1.8;
     font-size: 15px;
     box-shadow:
-        0 0 0 3px #120224 inset,
-        0 0 14px rgba(177, 66, 245, 0.25);
+        0 0 0 3px #050a14 inset,
+        0 0 14px rgba(0, 243, 255, 0.15);
     text-shadow: none;
 }
 
@@ -341,22 +341,11 @@ html, body {
     align-items: center;
     min-height: 260px;
     margin: 14px 0 18px;
-    border: 4px solid #00e5ff;
-    background:
-        linear-gradient(180deg, #1d0533, #090214),
-        repeating-linear-gradient(
-            90deg,
-            rgba(0, 229, 255, 0.08) 0 1px,
-            rgba(0, 229, 255, 0) 1px 28px
-        ),
-        repeating-linear-gradient(
-            180deg,
-            rgba(0, 229, 255, 0.08) 0 1px,
-            rgba(0, 229, 255, 0) 1px 28px
-        );
+    border: 4px solid #ff007a;
+    background: radial-gradient(circle at center, #2a1145 0%, #0a0414 100%);
     box-shadow:
-        0 0 0 4px #090214 inset,
-        0 0 16px rgba(0, 229, 255, 0.3);
+        0 0 0 4px #0a0414 inset,
+        0 0 16px rgba(255, 0, 122, 0.2);
 }
 
 .fortune-tube-wrap {
@@ -371,36 +360,36 @@ html, body {
 
 .fortune-tube-glow {
     position: absolute;
-    inset: 26px 10px 18px;
-    background: radial-gradient(circle, rgba(255, 0, 85, 0.6) 0%, rgba(177, 66, 245, 0.3) 52%, rgba(0, 229, 255, 0) 76%);
-    filter: blur(8px);
+    inset: 10px;
+    background: radial-gradient(circle, rgba(255, 189, 0, 0.4) 0%, rgba(255, 0, 122, 0.2) 40%, rgba(0, 0, 0, 0) 70%);
+    filter: blur(12px);
 }
 
 .fortune-stick {
     position: absolute;
     left: 50%;
-    bottom: 20px;
-    width: 48px;
+    bottom: 110px;
+    width: 56px;
     height: auto;
     transform: translateX(-50%);
     z-index: 1;
     opacity: 0;
-    filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.6));
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
 }
 
 .fortune-stick.is-rising {
-    animation: fortune-stick-rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    animation: fortune-stick-rise 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .fortune-tube {
     position: absolute;
     left: 50%;
     bottom: 10px;
-    width: 146px;
+    width: 140px;
     height: auto;
     transform: translateX(-50%);
     z-index: 2;
-    filter: drop-shadow(0 4px 12px rgba(10, 2, 20, 0.8));
+    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.6));
 }
 
 .fortune-actions {
@@ -413,15 +402,14 @@ html, body {
 .fortune-secondary,
 .fortune-modal-cancel,
 .fortune-modal-confirm {
-    border: 3px solid #b142f5;
-    background: linear-gradient(180deg, #3a0a66, #1d0533);
-    color: #e6b3ff;
+    border: 3px solid #00f3ff;
+    background: linear-gradient(180deg, #0f2540, #081426);
+    color: #00f3ff;
     font: 15px "PoxiaoPixel", sans-serif;
     padding: 14px 16px 12px;
     box-shadow:
-        0 0 0 3px #120224 inset,
-        4px 4px 0 rgba(10, 2, 20, 0.92),
-        0 0 8px rgba(177, 66, 245, 0.3);
+        0 0 0 3px #050a14 inset,
+        4px 4px 0 rgba(0, 0, 0, 0.92);
     transition: transform 0.08s steps(2, end), box-shadow 0.08s steps(2, end);
 }
 
@@ -431,26 +419,26 @@ html, body {
 .fortune-modal-confirm:active {
     transform: translate(4px, 4px);
     box-shadow:
-        0 0 0 3px #120224 inset,
-        0 0 6px rgba(177, 66, 245, 0.3);
+        0 0 0 3px #050a14 inset,
+        0 0 6px rgba(0, 243, 255, 0.2);
 }
 
 .fortune-primary,
 .fortune-modal-confirm {
-    border-color: #ff0055;
-    background: linear-gradient(180deg, #cc0044, #80002b);
+    border-color: #ffbd00;
+    background: linear-gradient(180deg, #ff007a, #b30056);
     color: #ffffff;
     box-shadow:
-        0 0 0 3px #4d001a inset,
-        4px 4px 0 rgba(10, 2, 20, 0.92),
-        0 0 12px rgba(255, 0, 85, 0.5);
+        0 0 0 3px #4d0025 inset,
+        4px 4px 0 rgba(0, 0, 0, 0.92),
+        0 0 12px rgba(255, 0, 122, 0.4);
 }
 
 .fortune-primary:active,
 .fortune-modal-confirm:active {
     box-shadow:
-        0 0 0 3px #4d001a inset,
-        0 0 8px rgba(255, 0, 85, 0.5);
+        0 0 0 3px #4d0025 inset,
+        0 0 8px rgba(255, 0, 122, 0.5);
 }
 
 .fortune-primary:disabled,
@@ -479,16 +467,16 @@ html, body {
     z-index: 1;
     width: 100%;
     background:
-        linear-gradient(180deg, #1d0533, #090214),
+        linear-gradient(180deg, #160f29, #0d0818),
         repeating-linear-gradient(
             0deg,
-            rgba(0, 229, 255, 0.05) 0 2px,
-            rgba(0, 229, 255, 0) 2px 6px
+            rgba(0, 243, 255, 0.05) 0 2px,
+            rgba(0, 243, 255, 0) 2px 6px
         );
-    border: 4px solid #00e5ff;
+    border: 4px solid #ff007a;
     box-shadow:
-        0 0 0 4px #090214 inset,
-        0 0 16px rgba(0, 229, 255, 0.4);
+        0 0 0 4px #0d0818 inset,
+        0 0 16px rgba(255, 0, 122, 0.4);
     padding: 24px 20px 20px;
 }
 
@@ -498,9 +486,9 @@ html, body {
     position: absolute;
     width: 12px;
     height: 12px;
-    background: #00e5ff;
+    background: #ffbd00;
     border-radius: 50%;
-    box-shadow: 0 0 8px rgba(0, 229, 255, 0.6);
+    box-shadow: 0 0 8px rgba(255, 189, 0, 0.6);
 }
 
 .fortune-modal-card::before {
@@ -514,22 +502,22 @@ html, body {
 }
 
 .fortune-modal-title {
-    color: #ff0055;
+    color: #ffbd00;
     text-align: center;
     font-size: 22px;
     margin-bottom: 14px;
-    text-shadow: 0 0 8px rgba(255, 0, 85, 0.6);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
     font-weight: bold;
 }
 
 .fortune-modal-body {
-    color: #e6b3ff;
+    color: #e0ffff;
     text-align: center;
     line-height: 1.8;
     font-size: 15px;
     min-height: 104px;
     font-weight: bold;
-    text-shadow: 0 0 4px rgba(230, 179, 255, 0.3);
+    text-shadow: 0 2px 2px rgba(0, 0, 0, 0.8);
 }
 
 .fortune-modal-actions {
