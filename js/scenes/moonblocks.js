@@ -1,5 +1,5 @@
 /**
- * moonblocks.js — 掷杯筊场景
+ * moonblocks.js — 今日神意签场景
  */
 var MoonBlocksScene = (function () {
     'use strict';
@@ -361,7 +361,7 @@ var MoonBlocksScene = (function () {
     function _renderPrepare(ctx, w, h) {
         var titleW = 200, titleH = 48;
         UI.drawRoundedRect(ctx, w / 2 - titleW / 2, h * 0.08, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
-        UI.drawTitle(ctx, '掷杯筊', w / 2, h * 0.08 + titleH / 2 + 2, 24, Draw.THEME.gold);
+        UI.drawTitle(ctx, '今日神意签', w / 2, h * 0.08 + titleH / 2 + 2, 24, Draw.THEME.gold);
 
         // 展示杯筊
         Draw.drawMoonBlock(ctx, w * 0.38, h * 0.38, 1.5, true, Math.sin(_time) * 0.1);
@@ -401,7 +401,7 @@ var MoonBlocksScene = (function () {
         var shake = Math.sin(_time * 20) * 3;
         var titleW = 200, titleH = 48;
         UI.drawRoundedRect(ctx, w / 2 - titleW / 2, h * 0.08, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
-        UI.drawTitle(ctx, '掷杯筊', w / 2, h * 0.08 + titleH / 2 + 2, 24, Draw.THEME.gold);
+        UI.drawTitle(ctx, '今日神意签', w / 2, h * 0.08 + titleH / 2 + 2, 24, Draw.THEME.gold);
 
         // 抖动效果
         ctx.save();
@@ -442,7 +442,7 @@ var MoonBlocksScene = (function () {
     function _renderFalling(ctx, w, h) {
         var titleW = 200, titleH = 48;
         UI.drawRoundedRect(ctx, w / 2 - titleW / 2, h * 0.08, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
-        UI.drawTitle(ctx, '掷杯筊', w / 2, h * 0.08 + titleH / 2 + 2, 24, Draw.THEME.gold);
+        UI.drawTitle(ctx, '今日神意签', w / 2, h * 0.08 + titleH / 2 + 2, 24, Draw.THEME.gold);
 
         // 落下动画
         var blocks = [_block1, _block2];

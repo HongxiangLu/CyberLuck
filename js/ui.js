@@ -139,22 +139,22 @@ var UI = (function () {
             text = THEME.ink;
             highlight = _mix('#ffd966', '#ffffff', 0.4);
             shadow = _mix('#ffd966', '#000000', 0.2);
-        } else if (/拜财神/.test(btn.text)) {
+        } else if (/拜财神|开运拜一拜/.test(btn.text)) {
             fill = '#ff4da6'; // 柔和粉色
             text = THEME.paper;
             highlight = _mix('#ff4da6', '#ffffff', 0.4);
             shadow = _mix('#ff4da6', '#000000', 0.2);
-        } else if (/木鱼/.test(btn.text)) {
+        } else if (/木鱼|敲出好运来/.test(btn.text)) {
             fill = '#4de1ff'; // 柔和青色
             text = THEME.ink;
             highlight = _mix('#4de1ff', '#ffffff', 0.4);
             shadow = _mix('#4de1ff', '#000000', 0.2);
-        } else if (/杯/.test(btn.text)) {
+        } else if (/杯|签/.test(btn.text)) {
             fill = '#ffb34d'; // 柔和橙色
             text = THEME.ink;
             highlight = _mix('#ffb34d', '#ffffff', 0.4);
             shadow = _mix('#ffb34d', '#000000', 0.2);
-        } else if (/拜年/.test(btn.text)) {
+        } else if (/拜年|姿势王/.test(btn.text)) {
             fill = '#4dffb3'; // 柔和薄荷绿
             text = THEME.ink;
             highlight = _mix('#4dffb3', '#ffffff', 0.4);

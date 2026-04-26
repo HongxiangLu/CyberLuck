@@ -1,5 +1,5 @@
 /**
- * stickman.js — 拜年小人场景（刚体旋转 FK 模型）
+ * stickman.js — 拜年姿势王场景（刚体旋转 FK 模型）
  */
 var StickmanScene = (function () {
     'use strict';
@@ -351,7 +351,7 @@ var StickmanScene = (function () {
         if (_phase === 'prepare') {
             var titleW = 200, titleH = 48;
             UI.drawRoundedRect(ctx, w / 2 - titleW / 2, h * 0.06, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
-            UI.drawTitle(ctx, '拜年小人', w/2, h*0.06 + titleH/2 + 2, 28, Draw.THEME.gold);
+            UI.drawTitle(ctx, '拜年姿势王', w/2, h*0.06 + titleH/2 + 2, 28, Draw.THEME.gold);
             
             ctx.save();
             ctx.font = '15px "PoxiaoPixel"';

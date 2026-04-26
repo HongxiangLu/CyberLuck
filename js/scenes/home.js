@@ -58,10 +58,10 @@ var HomeScene = (function () {
         var bx = (W - btnW) / 2;
 
         var scenes = [
-            { text: '拜财神', scene: 'worship', color: '#ff4da6', bg: 'rgba(255,77,166,0.15)', border: '#ff4da6' },
-            { text: '木鱼灵宠', scene: 'woodenfish', color: '#4de1ff', bg: 'rgba(77,225,255,0.15)', border: '#4de1ff' },
-            { text: '掷杯筊', scene: 'moonblocks', color: '#ffb34d', bg: 'rgba(255,179,77,0.15)', border: '#ffb34d' },
-            { text: '拜年小人', scene: 'stickman', color: '#4dffb3', bg: 'rgba(77,255,179,0.15)', border: '#4dffb3' }
+            { text: '开运拜一拜', scene: 'worship', color: '#ff4da6', bg: 'rgba(255,77,166,0.15)', border: '#ff4da6' },
+            { text: '敲出好运来', scene: 'woodenfish', color: '#4de1ff', bg: 'rgba(77,225,255,0.15)', border: '#4de1ff' },
+            { text: '今日神意签', scene: 'moonblocks', color: '#ffb34d', bg: 'rgba(255,179,77,0.15)', border: '#ffb34d' },
+            { text: '拜年姿势王', scene: 'stickman', color: '#4dffb3', bg: 'rgba(77,255,179,0.15)', border: '#4dffb3' }
         ];
 
         for (var j = 0; j < scenes.length; j++) {
@@ -140,7 +140,7 @@ var HomeScene = (function () {
                     MeritSystem.showToast('初始功德到账 +' + reward, 'success');
                     Engine.addFloatingText(x + (Math.random() - 0.5) * 40, y - 20, '+' + reward, '#FFD700', 24);
                 } else {
-                    MeritSystem.showToast('初始功德已经领过啦，去敲木鱼继续积攒吧', 'info');
+                    MeritSystem.showToast('初始功德已经领过啦，去“敲出好运来”继续积攒吧', 'info');
                 }
             }
         };
