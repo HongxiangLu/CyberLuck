@@ -240,19 +240,19 @@ html, body {
     position: relative;
     z-index: 1;
     background:
-        linear-gradient(180deg, rgba(30, 10, 10, 0.98), rgba(15, 6, 6, 0.99)),
+        linear-gradient(180deg, #6b1414, #3a0808),
         repeating-linear-gradient(
             0deg,
-            rgba(255, 236, 188, 0.025) 0 2px,
+            rgba(255, 236, 188, 0.05) 0 2px,
             rgba(255, 236, 188, 0) 2px 6px
         ),
-        #1c0808;
-    border: 4px solid #c99a4e;
+        #4a0d0d;
+    border: 4px solid #ffca28;
     box-shadow:
-        0 0 0 4px #2a0b0b inset,
-        0 0 0 8px rgba(201, 154, 78, 0.14) inset,
-        8px 8px 0 rgba(10, 5, 5, 0.95),
-        0 0 16px rgba(185, 55, 20, 0.25);
+        0 0 0 4px #2a0505 inset,
+        0 0 0 8px rgba(255, 202, 40, 0.2) inset,
+        8px 8px 0 rgba(20, 5, 5, 0.95),
+        0 0 20px rgba(255, 82, 82, 0.4);
     padding: 70px 24px 24px;
 }
 
@@ -262,8 +262,8 @@ html, body {
     position: absolute;
     width: 14px;
     height: 14px;
-    background: #e2b460;
-    box-shadow: 0 0 6px rgba(226, 180, 96, 0.35);
+    background: #ffca28;
+    box-shadow: 0 0 8px rgba(255, 202, 40, 0.5);
 }
 
 .fortune-panel::before {
@@ -283,54 +283,54 @@ html, body {
     z-index: 3;
     min-width: 92px;
     height: 42px;
-    border: 3px solid #63a98f;
-    background: linear-gradient(180deg, #2b4f42, #182e25);
-    color: #c9e8da;
+    border: 3px solid #80cbc4;
+    background: linear-gradient(180deg, #00695c, #004d40);
+    color: #e0f2f1;
     font: 15px "PoxiaoPixel", sans-serif;
     box-shadow:
-        0 0 0 3px #12211a inset,
+        0 0 0 3px #00332a inset,
         4px 4px 0 rgba(10, 5, 5, 0.9),
-        0 0 10px rgba(99, 169, 143, 0.25);
+        0 0 12px rgba(0, 150, 136, 0.4);
 }
 
 .fortune-title {
     margin: 0 auto 16px;
     width: fit-content;
     padding: 10px 18px 8px;
-    border: 3px solid #c99a4e;
+    border: 3px solid #ffca28;
     background:
-        linear-gradient(180deg, rgba(145, 25, 25, 0.98), rgba(85, 15, 15, 0.98)),
-        #520f0f;
-    color: #fce4a6;
+        linear-gradient(180deg, #d32f2f, #b71c1c),
+        #c62828;
+    color: #ffeb3b;
     text-align: center;
     font-size: 26px;
     letter-spacing: 0.08em;
     box-shadow:
-        0 0 0 3px #360a0a inset,
+        0 0 0 3px #5c0f0f inset,
         4px 4px 0 rgba(10, 5, 5, 0.92);
     text-shadow:
-        0 0 8px rgba(252, 228, 166, 0.4);
+        0 0 10px rgba(255, 235, 59, 0.6);
 }
 
 .fortune-rule {
     min-height: 86px;
     padding: 14px 14px 12px;
-    border: 3px solid #63a98f;
+    border: 3px solid #80cbc4;
     background:
-        linear-gradient(180deg, rgba(35, 66, 55, 0.35), rgba(20, 38, 32, 0.15)),
+        linear-gradient(180deg, rgba(0, 105, 92, 0.6), rgba(0, 77, 64, 0.4)),
         repeating-linear-gradient(
             180deg,
-            rgba(201, 232, 218, 0.05) 0 2px,
-            rgba(201, 232, 218, 0) 2px 8px
+            rgba(224, 242, 241, 0.08) 0 2px,
+            rgba(224, 242, 241, 0) 2px 8px
         ),
-        #0d1713;
-    color: #c9e8da;
+        #00332a;
+    color: #e0f2f1;
     text-align: center;
     line-height: 1.8;
-    font-size: 14px;
+    font-size: 15px;
     box-shadow:
-        0 0 0 3px #080f0c inset,
-        0 0 10px rgba(99, 169, 143, 0.15);
+        0 0 0 3px #00251a inset,
+        0 0 14px rgba(0, 150, 136, 0.25);
     text-shadow: none;
 }
 
@@ -340,22 +340,22 @@ html, body {
     align-items: center;
     min-height: 260px;
     margin: 14px 0 18px;
-    border: 4px solid #b9843c;
+    border: 4px solid #ffca28;
     background:
-        linear-gradient(180deg, rgba(37, 18, 12, 0.98), rgba(24, 11, 8, 0.98)),
+        linear-gradient(180deg, #4a0d0d, #2a0505),
         repeating-linear-gradient(
             90deg,
-            rgba(244, 223, 174, 0.035) 0 1px,
-            rgba(244, 223, 174, 0) 1px 28px
+            rgba(255, 235, 59, 0.04) 0 1px,
+            rgba(255, 235, 59, 0) 1px 28px
         ),
         repeating-linear-gradient(
             180deg,
-            rgba(244, 223, 174, 0.03) 0 1px,
-            rgba(244, 223, 174, 0) 1px 28px
+            rgba(255, 235, 59, 0.04) 0 1px,
+            rgba(255, 235, 59, 0) 1px 28px
         );
     box-shadow:
-        0 0 0 4px #2a110d inset,
-        0 0 12px rgba(132, 75, 31, 0.12);
+        0 0 0 4px #2a0505 inset,
+        0 0 16px rgba(255, 202, 40, 0.15);
 }
 
 .fortune-tube-wrap {
@@ -371,7 +371,7 @@ html, body {
 .fortune-tube-glow {
     position: absolute;
     inset: 26px 10px 18px;
-    background: radial-gradient(circle, rgba(212, 175, 55, 0.25) 0%, rgba(212, 175, 55, 0.08) 52%, rgba(212, 175, 55, 0) 76%);
+    background: radial-gradient(circle, rgba(255, 202, 40, 0.4) 0%, rgba(255, 202, 40, 0.15) 52%, rgba(255, 202, 40, 0) 76%);
     filter: blur(6px);
 }
 
@@ -383,11 +383,11 @@ html, body {
     height: 132px;
     transform: translateX(-50%) translateY(76px);
     background:
-        linear-gradient(180deg, #d32f2f 0%, #b71c1c 20%, #e3c582 20%, #cba55a 72%, #a87f3b 100%);
-    border: 3px solid #f7e7bf;
+        linear-gradient(180deg, #d32f2f 0%, #b71c1c 20%, #ffe082 20%, #ffca28 72%, #ffb300 100%);
+    border: 3px solid #fff9c4;
     box-shadow:
-        0 0 6px rgba(235, 201, 129, 0.18),
-        0 0 0 3px rgba(72, 36, 16, 0.95) inset;
+        0 0 10px rgba(255, 202, 40, 0.35),
+        0 0 0 3px rgba(183, 28, 28, 0.8) inset;
     opacity: 0.12;
     z-index: 1;
 }
@@ -429,12 +429,12 @@ html, body {
     top: 0;
     width: 138px;
     height: 24px;
-    border: 3px solid #d4af37;
+    border: 3px solid #ffca28;
     background:
-        linear-gradient(180deg, #8a1f1f, #4d1010);
+        linear-gradient(180deg, #d32f2f, #b71c1c);
     box-shadow:
-        0 0 6px rgba(212, 175, 55, 0.25),
-        0 0 0 3px rgba(60, 25, 14, 0.9) inset;
+        0 0 10px rgba(255, 202, 40, 0.4),
+        0 0 0 3px rgba(183, 28, 28, 0.9) inset;
     clip-path: polygon(8% 0, 92% 0, 100% 28%, 100% 72%, 92% 100%, 8% 100%, 0 72%, 0 28%);
 }
 
@@ -443,11 +443,11 @@ html, body {
     width: 118px;
     height: 138px;
     background:
-        linear-gradient(90deg, #3d0c0c 0%, #591616 16%, #8a1f1f 50%, #591616 84%, #3d0c0c 100%);
-    border: 3px solid #d4af37;
+        linear-gradient(90deg, #8e0000 0%, #c62828 16%, #e53935 50%, #c62828 84%, #8e0000 100%);
+    border: 3px solid #ffca28;
     box-shadow:
-        0 0 10px rgba(212, 175, 55, 0.15),
-        0 0 0 3px rgba(60, 25, 14, 0.9) inset;
+        0 0 14px rgba(255, 202, 40, 0.25),
+        0 0 0 3px rgba(183, 28, 28, 0.9) inset;
     clip-path: polygon(6% 0, 94% 0, 94% 100%, 6% 100%);
 }
 
@@ -458,7 +458,7 @@ html, body {
     top: 18px;
     bottom: 18px;
     width: 3px;
-    background: rgba(212, 175, 55, 0.35);
+    background: rgba(255, 202, 40, 0.45);
 }
 
 .fortune-tube-body::before {
@@ -473,13 +473,13 @@ html, body {
     bottom: 0;
     width: 134px;
     height: 30px;
-    border: 3px solid #d4af37;
+    border: 3px solid #ffca28;
     background:
-        linear-gradient(180deg, #4d1010, #290808),
-        #290808;
+        linear-gradient(180deg, #b71c1c, #8e0000),
+        #8e0000;
     box-shadow:
-        0 0 10px rgba(212, 175, 55, 0.25),
-        0 0 0 3px rgba(60, 25, 14, 0.9) inset;
+        0 0 14px rgba(255, 202, 40, 0.35),
+        0 0 0 3px rgba(183, 28, 28, 0.9) inset;
     clip-path: polygon(10% 0, 90% 0, 100% 35%, 100% 65%, 90% 100%, 10% 100%, 0 65%, 0 35%);
 }
 
@@ -517,20 +517,20 @@ html, body {
 
 .fortune-primary,
 .fortune-modal-confirm {
-    border-color: #c99a4e;
-    background: linear-gradient(180deg, #8a1f1f, #4d1010);
-    color: #fce4a6;
+    border-color: #ffca28;
+    background: linear-gradient(180deg, #e53935, #c62828);
+    color: #fff8e1;
     box-shadow:
-        0 0 0 3px #360a0a inset,
+        0 0 0 3px #8e0000 inset,
         4px 4px 0 rgba(10, 5, 5, 0.92),
-        0 0 12px rgba(201, 154, 78, 0.2);
+        0 0 12px rgba(255, 202, 40, 0.3);
 }
 
 .fortune-primary:active,
 .fortune-modal-confirm:active {
     box-shadow:
-        0 0 0 3px #360a0a inset,
-        0 0 8px rgba(201, 154, 78, 0.2);
+        0 0 0 3px #8e0000 inset,
+        0 0 8px rgba(255, 202, 40, 0.3);
 }
 
 .fortune-primary:disabled,
@@ -559,15 +559,15 @@ html, body {
     z-index: 1;
     width: 100%;
     background:
-        linear-gradient(180deg, #ebd197, #dcb771),
+        linear-gradient(180deg, #fff59d, #ffe082),
         repeating-linear-gradient(
             0deg,
             rgba(185, 55, 20, 0.04) 0 2px,
             rgba(185, 55, 20, 0) 2px 6px
         );
-    border: 4px solid #b93714;
+    border: 4px solid #c62828;
     box-shadow:
-        0 0 0 4px #e0ba76 inset,
+        0 0 0 4px #ffca28 inset,
         0 0 16px rgba(185, 55, 20, 0.35);
     padding: 24px 20px 20px;
 }
@@ -578,7 +578,7 @@ html, body {
     position: absolute;
     width: 12px;
     height: 12px;
-    background: #b93714;
+    background: #c62828;
     border-radius: 50%;
 }
 
@@ -593,16 +593,16 @@ html, body {
 }
 
 .fortune-modal-title {
-    color: #8a1f1f;
+    color: #c62828;
     text-align: center;
     font-size: 22px;
     margin-bottom: 14px;
-    text-shadow: 0 0 4px rgba(138, 31, 31, 0.15);
+    text-shadow: 0 0 4px rgba(198, 40, 40, 0.2);
     font-weight: bold;
 }
 
 .fortune-modal-body {
-    color: #4a1911;
+    color: #b71c1c;
     text-align: center;
     line-height: 1.8;
     font-size: 15px;
