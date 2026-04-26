@@ -6,6 +6,7 @@ var HomeScene = (function () {
 
     var buttons = [];
     var clouds = [];
+    var _layout = null;
     var _time = 0;
     var _heroImg = null;
     var _clickAnim = 0;
@@ -25,6 +26,79 @@ var HomeScene = (function () {
         try {
             localStorage.setItem(_starterStorageKey, '1');
         } catch (e) {}
+    }
+
+    function _isPhoneLayout(w, h) {
+        return w <= 520 && h > w;
+    }
+
+    function _buildLayout(w, h) {
+        var isPhone = _isPhoneLayout(w, h);
+        var topPanelY = h * (isPhone ? 0.07 : 0.08);
+        var topPanelH = h * (isPhone ? 0.33 : 0.28);
+        var buttonPanelY = h * (isPhone ? 0.395 : 0.38);
+        var buttonPanelH = h * (isPhone ? 0.42 : 0.5);
+        var buttonW = isPhone ? Math.min(w * 0.54, 236) : Math.min(w * 0.75, 280);
+        var buttonH = isPhone ? 52 : 60;
+        var buttonGap = isPhone ? 12 : 15;
+        var titleW = isPhone ? Math.min(w * 0.58, 236) : 280;
+        var titleH = isPhone ? 56 : 64;
+
+        return {
+            isPhone: isPhone,
+            topPanelX: w * 0.08,
+            topPanelY: topPanelY,
+            topPanelW: w * 0.84,
+            topPanelH: topPanelH,
+            buttonPanelX: w * 0.08,
+            buttonPanelY: buttonPanelY,
+            buttonPanelW: w * 0.84,
+            buttonPanelH: buttonPanelH,
+            titleW: titleW,
+            titleH: titleH,
+            titleX: w / 2 - titleW / 2,
+            titleY: topPanelY + (isPhone ? 12 : 0),
+            titleFontSize: isPhone ? 26 : 32,
+            heroCenterX: w / 2,
+            heroCenterY: topPanelY + topPanelH * (isPhone ? 0.63 : 0.64),
+            heroHeight: isPhone ? Math.min(146, h * 0.19) : 150,
+            hintY: topPanelY + topPanelH - (isPhone ? 28 : 20),
+            buttonW: buttonW,
+            buttonH: buttonH,
+            buttonGap: buttonGap,
+            buttonX: (w - buttonW) / 2,
+            buttonStartY: isPhone ? buttonPanelY + 28 : h * 0.38,
+            buttonFontSize: isPhone ? 18 : 20,
+            footerY: isPhone ? Math.min(h * 0.89, buttonPanelY + buttonPanelH + 34) : h * 0.92,
+            footerFontSize: isPhone ? 14 : 16
+        };
+    }
+
+    function _syncLayout(w, h) {
+        _layout = _buildLayout(w, h);
+        for (var i = 0; i < buttons.length; i++) {
+            if (!buttons[i]) continue;
+            buttons[i].x = _layout.buttonX;
+            buttons[i].y = _layout.buttonStartY + i * (_layout.buttonH + _layout.buttonGap);
+            buttons[i].w = _layout.buttonW;
+            buttons[i].h = _layout.buttonH;
+            buttons[i].fontSize = _layout.buttonFontSize;
+        }
+        return _layout;
+    }
+
+    function _getHeroMetrics(layout) {
+        var imgH = layout.heroHeight;
+        var imgW = imgH;
+        if (_heroImg && _heroImg.complete) {
+            imgW = imgH * (_heroImg.naturalWidth / _heroImg.naturalHeight || 1);
+        }
+        return {
+            cx: layout.heroCenterX,
+            cy: layout.heroCenterY,
+            w: imgW,
+            h: imgH
+        };
     }
 
     function init() {
@@ -51,11 +125,7 @@ var HomeScene = (function () {
 
         var W = Engine.width();
         var H = Engine.height();
-        var btnW = Math.min(W * 0.75, 280);
-        var btnH = 60;
-        var gap = 15;
-        var startY = H * 0.38;
-        var bx = (W - btnW) / 2;
+        var layout = _syncLayout(W, H);
 
         var scenes = [
             { text: '开运拜一拜', scene: 'worship', color: '#ff4da6', bg: 'rgba(255,77,166,0.15)', border: '#ff4da6' },
@@ -67,13 +137,13 @@ var HomeScene = (function () {
         for (var j = 0; j < scenes.length; j++) {
             (function (item, index) {
                 var btn = UI.createButton({
-                    x: bx, y: startY + index * (btnH + gap),
-                    w: btnW, h: btnH,
+                    x: layout.buttonX, y: layout.buttonStartY + index * (layout.buttonH + layout.buttonGap),
+                    w: layout.buttonW, h: layout.buttonH,
                     text: item.text,
                     color: item.color,
                     bgColor: item.bg,
                     borderColor: item.border,
-                    fontSize: 20,
+                    fontSize: layout.buttonFontSize,
                     radius: 16,
                     onClick: function () {
                         Audio.playTap();
@@ -103,18 +173,15 @@ var HomeScene = (function () {
             
             var w = Engine.width();
             var h = Engine.height();
-            var imgH = 150;
-            var imgW = 150;
-            if (_heroImg && _heroImg.complete) {
-                imgW = imgH * (_heroImg.naturalWidth / _heroImg.naturalHeight || 1);
-            }
+            var layout = _syncLayout(w, h);
+            var hero = _getHeroMetrics(layout);
             
             var hoverY = Math.sin(_time * 2.5) * 6;
-            var cx = w / 2;
-            var cy = h * 0.26 + hoverY;
+            var cx = hero.cx;
+            var cy = hero.cy + hoverY;
 
             // 检测是否点击在财神区域内
-            if (x > cx - imgW / 2 && x < cx + imgW / 2 && y > cy - imgH / 2 && y < cy + imgH / 2) {
+            if (x > cx - hero.w / 2 && x < cx + hero.w / 2 && y > cy - hero.h / 2 && y < cy + hero.h / 2) {
                 _clickAnim = 1;
                 Audio.init();
                 Audio.playSuccess();
@@ -122,7 +189,7 @@ var HomeScene = (function () {
                 Engine.addGoldBurst(cx, cy, {
                     count: 30,
                     speed: 3.4,
-                    ringRadius: Math.min(imgW, imgH) * 0.42,
+                    ringRadius: Math.min(hero.w, hero.h) * 0.42,
                     upwardLift: 0.45,
                     flash: true,
                     flashCoreRadius: 12,
@@ -151,6 +218,8 @@ var HomeScene = (function () {
 
     function render(ctx, w, h) {
         _time += 0.016;
+        var layout = _syncLayout(w, h);
+        var hero = _getHeroMetrics(layout);
 
         // 背景
         Draw.drawBackground(ctx, w, h);
@@ -165,21 +234,21 @@ var HomeScene = (function () {
         }
 
         // Main panels
-        Draw.drawPanel(ctx, w * 0.08, h * 0.08, w * 0.84, h * 0.28, Draw.THEME.panelDark, Draw.THEME.cyan, Draw.THEME.pink, Draw.THEME.ink);
-        Draw.drawPanel(ctx, w * 0.08, h * 0.38, w * 0.84, h * 0.50, Draw.THEME.panel, Draw.THEME.pink, Draw.THEME.cyan, Draw.THEME.ink);
+        Draw.drawPanel(ctx, layout.topPanelX, layout.topPanelY, layout.topPanelW, layout.topPanelH, Draw.THEME.panelDark, Draw.THEME.cyan, Draw.THEME.pink, Draw.THEME.ink);
+        Draw.drawPanel(ctx, layout.buttonPanelX, layout.buttonPanelY, layout.buttonPanelW, layout.buttonPanelH, Draw.THEME.panel, Draw.THEME.pink, Draw.THEME.cyan, Draw.THEME.ink);
         
         Draw.drawHalo(ctx, w / 2, h * 0.22, 120, Draw.THEME.pink, 0.15 + Math.sin(_time * 2) * 0.05);
 
         // Draw Title Pill Background
-        var titleW = 280;
-        var titleH = 64;
-        var titleX = w / 2 - titleW / 2;
-        var titleY = h * 0.08;
+        var titleW = layout.titleW;
+        var titleH = layout.titleH;
+        var titleX = layout.titleX;
+        var titleY = layout.titleY;
         
         UI.drawRoundedRect(ctx, titleX, titleY, titleW, titleH, 0, Draw.THEME.pink, Draw.THEME.ink);
         
         // Header
-        UI.drawTitle(ctx, '这年我拜爆了', w / 2, titleY + titleH / 2 + 2, 32, Draw.THEME.gold);
+        UI.drawTitle(ctx, '这年我拜爆了', w / 2, titleY + titleH / 2 + 2, layout.titleFontSize, Draw.THEME.gold);
 
         // 衰减点击动画
         if (_clickAnim > 0) _clickAnim *= 0.85;
@@ -191,20 +260,18 @@ var HomeScene = (function () {
         
         ctx.save();
         if (_heroImg && _heroImg.complete) {
-            var imgH = 150;
-            var imgW = imgH * (_heroImg.naturalWidth / _heroImg.naturalHeight || 1);
-            ctx.translate(w / 2, h * 0.26 + hoverY);
+            ctx.translate(hero.cx, hero.cy + hoverY);
             ctx.scale(scale, scale);
-            ctx.drawImage(_heroImg, -imgW / 2, -imgH / 2, imgW, imgH);
+            ctx.drawImage(_heroImg, -hero.w / 2, -hero.h / 2, hero.w, hero.h);
         } else {
             ctx.font = '13px "PoxiaoPixel"';
             ctx.textAlign = 'center';
             ctx.lineJoin = 'round';
             ctx.lineWidth = 3;
             ctx.strokeStyle = '#24113f';
-            ctx.strokeText('PNG载入中', w / 2, h * 0.26 + hoverY);
+            ctx.strokeText('PNG载入中', hero.cx, hero.cy + hoverY);
             ctx.fillStyle = '#fff2c1';
-            ctx.fillText('PNG载入中', w / 2, h * 0.26 + hoverY);
+            ctx.fillText('PNG载入中', hero.cx, hero.cy + hoverY);
         }
         ctx.restore();
 
@@ -216,14 +283,14 @@ var HomeScene = (function () {
             ctx.lineJoin = 'round';
             ctx.lineWidth = 3;
             ctx.strokeStyle = 'rgba(36,17,63,' + hintAlpha + ')';
-            ctx.strokeText('点我获得初始功德', w / 2, h * 0.34);
+            ctx.strokeText('点我获得初始功德', w / 2, layout.hintY);
             ctx.fillStyle = 'rgba(255,242,193,' + hintAlpha + ')';
-            ctx.fillText('点我获得初始功德', w / 2, h * 0.34);
+            ctx.fillText('点我获得初始功德', w / 2, layout.hintY);
             ctx.restore();
         }
 
         // 版本信息
-        UI.drawSubtitle(ctx, '今年的好运，先拜为敬', w / 2, h * 0.92, 16, Draw.THEME.cyan);
+        UI.drawSubtitle(ctx, '今年的好运，先拜为敬', w / 2, layout.footerY, layout.footerFontSize, Draw.THEME.cyan);
 
         // 按钮
         UI.drawButtons(ctx);

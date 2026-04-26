@@ -10,12 +10,17 @@ var MeritSystem = (function () {
     var _badgeEl = null;
     var _toastHostEl = null;
     var _initialized = false;
+    var _resizeBound = false;
 
     function init() {
         if (_initialized) return;
         _initialized = true;
         _load();
         _ensureUI();
+        if (!_resizeBound) {
+            _resizeBound = true;
+            window.addEventListener('resize', _render);
+        }
         _render();
     }
 
@@ -47,7 +52,8 @@ var MeritSystem = (function () {
     function _render() {
         _ensureUI();
         if (_badgeEl) {
-            _badgeEl.textContent = '🪙 功德: ' + _points;
+            var compact = window.innerWidth <= 520 && window.innerHeight > window.innerWidth;
+            _badgeEl.textContent = compact ? ('🪙 ' + _points) : ('🪙 功德: ' + _points);
         }
     }
 

@@ -640,6 +640,8 @@ html, body {
     box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.18);
     font-size: 14px;
     letter-spacing: 0.5px;
+    line-height: 1;
+    white-space: nowrap;
     pointer-events: none;
 }
 
@@ -688,6 +690,23 @@ html, body {
 
 .toast-danger {
     border-color: #ff5a48;
+}
+
+@media (max-width: 520px) and (orientation: portrait) {
+    #meritBadge {
+        top: max(10px, env(safe-area-inset-top));
+        right: max(10px, env(safe-area-inset-right));
+        padding: 8px 10px;
+        border-width: 2px;
+        outline-width: 2px;
+        outline-offset: -5px;
+        font-size: 12px;
+        letter-spacing: 0;
+    }
+
+    .toast-host {
+        top: calc(max(12px, env(safe-area-inset-top)) + 40px);
+    }
 }
 
 /* ====== 错误提示覆盖层 ====== */
