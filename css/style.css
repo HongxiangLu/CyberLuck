@@ -457,6 +457,10 @@ html, body {
     background: rgba(3, 4, 9, 0.82);
 }
 
+.fortune-modal[hidden] {
+    display: none !important;
+}
+
 .fortune-modal-card {
     width: 100%;
     background:
