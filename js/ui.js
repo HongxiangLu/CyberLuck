@@ -195,6 +195,7 @@ var UI = (function () {
             var y = touch.clientY - rect.top;
             for (var i = _buttons.length - 1; i >= 0; i--) {
                 var b = _buttons[i];
+                if (!b) continue;
                 if (b.visible !== false && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) {
                     b.isPressed = true;
                     break;
@@ -210,6 +211,7 @@ var UI = (function () {
             var y = touch.clientY - rect.top;
             for (var i = _buttons.length - 1; i >= 0; i--) {
                 var b = _buttons[i];
+                if (!b) continue;
                 if (b.isPressed) {
                     b.isPressed = false;
                     if (b.visible !== false && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) {
@@ -258,6 +260,7 @@ var UI = (function () {
     function drawButtons(ctx) {
         for (var i = 0; i < _buttons.length; i++) {
             var b = _buttons[i];
+            if (!b) continue;
             if (b.visible === false) continue;
             var theme = _resolveButtonTheme(b);
             
